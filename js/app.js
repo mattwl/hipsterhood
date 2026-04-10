@@ -673,17 +673,6 @@ function drawH2HStats(subA, subB, years) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// Bootstrap tab lazy-render
-// ══════════════════════════════════════════════════════════════════════════════
-
-function onTabShow(targetSelector, fn) {
-  document.querySelectorAll("[data-bs-toggle='tab']").forEach(btn => {
-    btn.addEventListener("shown.bs.tab", e => {
-      if (e.target.getAttribute("data-bs-target") === targetSelector) fn();
-    });
-  });
-}
-
 // ── Entry point ───────────────────────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", async () => {
   // Show loading spinner in each chart container
@@ -711,16 +700,18 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Render the first (active) tab immediately
   initEvolution(data);
 
-  // Lazy render remaining tabs when first shown
+  // Lazy render remaining tabs when first shown.
+  // Attach directly to each button by ID — reliable regardless of Bootstrap
+  // event bubbling behaviour (each button only fires its own shown.bs.tab).
   let rankingsInit = false, mapInit = false, h2hInit = false;
 
-  onTabShow("#tab-rankings", () => {
+  document.getElementById("tab-rank-btn")?.addEventListener("shown.bs.tab", () => {
     if (!rankingsInit) { rankingsInit = true; initRankings(data); }
   });
-  onTabShow("#tab-map", () => {
+  document.getElementById("tab-map-btn")?.addEventListener("shown.bs.tab", () => {
     if (!mapInit) { mapInit = true; initMap(data); }
   });
-  onTabShow("#tab-h2h", () => {
+  document.getElementById("tab-h2h-btn")?.addEventListener("shown.bs.tab", () => {
     if (!h2hInit) { h2hInit = true; initHeadToHead(data); }
   });
 });
