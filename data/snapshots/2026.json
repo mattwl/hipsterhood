@@ -1,0 +1,222 @@
+{
+  "year": 2026,
+  "source": "Curated weighted venue-density scores (hipster OSM tags per suburb, Apr 2026)",
+  "methodology": "Hipster-relevant venue density per suburb; logistic interpolation; normalised 0\u2013100",
+  "suburbs": [
+    {
+      "name": "Melbourne",
+      "score": 99.7,
+      "trend": "stable"
+    },
+    {
+      "name": "Brunswick",
+      "score": 75.4,
+      "trend": "falling"
+    },
+    {
+      "name": "Fitzroy",
+      "score": 71.0,
+      "trend": "stable"
+    },
+    {
+      "name": "Collingwood",
+      "score": 68.3,
+      "trend": "falling"
+    },
+    {
+      "name": "Cremorne",
+      "score": 65.3,
+      "trend": "falling"
+    },
+    {
+      "name": "Northcote",
+      "score": 62.4,
+      "trend": "falling"
+    },
+    {
+      "name": "Brunswick East",
+      "score": 60.6,
+      "trend": "falling"
+    },
+    {
+      "name": "Yarraville",
+      "score": 56.4,
+      "trend": "falling"
+    },
+    {
+      "name": "Richmond",
+      "score": 53.9,
+      "trend": "falling"
+    },
+    {
+      "name": "Footscray",
+      "score": 51.8,
+      "trend": "falling"
+    },
+    {
+      "name": "Coburg",
+      "score": 49.7,
+      "trend": "falling"
+    },
+    {
+      "name": "Thornbury",
+      "score": 49.6,
+      "trend": "falling"
+    },
+    {
+      "name": "Abbotsford",
+      "score": 47.8,
+      "trend": "falling"
+    },
+    {
+      "name": "Carlton",
+      "score": 45.6,
+      "trend": "stable"
+    },
+    {
+      "name": "Fitzroy North",
+      "score": 45.2,
+      "trend": "falling"
+    },
+    {
+      "name": "St Kilda",
+      "score": 43.7,
+      "trend": "stable"
+    },
+    {
+      "name": "Moonee Ponds",
+      "score": 43.0,
+      "trend": "falling"
+    },
+    {
+      "name": "South Melbourne",
+      "score": 42.3,
+      "trend": "stable"
+    },
+    {
+      "name": "Prahran",
+      "score": 41.5,
+      "trend": "stable"
+    },
+    {
+      "name": "Ripponlea",
+      "score": 41.5,
+      "trend": "falling"
+    },
+    {
+      "name": "Balaclava",
+      "score": 40.3,
+      "trend": "stable"
+    },
+    {
+      "name": "Windsor",
+      "score": 40.2,
+      "trend": "stable"
+    },
+    {
+      "name": "North Melbourne",
+      "score": 39.6,
+      "trend": "falling"
+    },
+    {
+      "name": "Ascot Vale",
+      "score": 38.0,
+      "trend": "falling"
+    },
+    {
+      "name": "Port Melbourne",
+      "score": 35.1,
+      "trend": "falling"
+    },
+    {
+      "name": "Elwood",
+      "score": 31.1,
+      "trend": "stable"
+    },
+    {
+      "name": "Parkville",
+      "score": 26.4,
+      "trend": "stable"
+    },
+    {
+      "name": "Glen Iris",
+      "score": 23.1,
+      "trend": "stable"
+    },
+    {
+      "name": "Malvern",
+      "score": 20.7,
+      "trend": "stable"
+    },
+    {
+      "name": "Caulfield North",
+      "score": 18.8,
+      "trend": "stable"
+    },
+    {
+      "name": "Pascoe Vale South",
+      "score": 16.1,
+      "trend": "stable"
+    },
+    {
+      "name": "South Yarra",
+      "score": 14.9,
+      "trend": "stable"
+    },
+    {
+      "name": "Glen Waverley",
+      "score": 12.8,
+      "trend": "stable"
+    },
+    {
+      "name": "Ringwood",
+      "score": 10.6,
+      "trend": "stable"
+    },
+    {
+      "name": "Albert Park",
+      "score": 0.0,
+      "trend": "stable"
+    },
+    {
+      "name": "Brighton",
+      "score": 0.0,
+      "trend": "stable"
+    },
+    {
+      "name": "Carlton North",
+      "score": 0.0,
+      "trend": "stable"
+    },
+    {
+      "name": "Cheltenham",
+      "score": 0.0,
+      "trend": "stable"
+    },
+    {
+      "name": "Hawthorn",
+      "score": 0.0,
+      "trend": "stable"
+    },
+    {
+      "name": "Moorabbin",
+      "score": 0.0,
+      "trend": "stable"
+    },
+    {
+      "name": "Murumbeena",
+      "score": 0.0,
+      "trend": "stable"
+    },
+    {
+      "name": "Pascoe Vale",
+      "score": 0.0,
+      "trend": "stable"
+    },
+    {
+      "name": "Southbank",
+      "score": 0.0,
+      "trend": "stable"
+    }
+  ]
+}
