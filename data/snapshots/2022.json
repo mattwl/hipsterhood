@@ -1,0 +1,222 @@
+{
+  "year": 2022,
+  "source": "Interpolated (post-COVID recovery trajectory)",
+  "methodology": "Hipster-relevant venue density per suburb; logistic interpolation; normalised 0\u2013100",
+  "suburbs": [
+    {
+      "name": "Melbourne",
+      "score": 100.0,
+      "trend": "rising"
+    },
+    {
+      "name": "Brunswick",
+      "score": 83.9,
+      "trend": "rising"
+    },
+    {
+      "name": "Cremorne",
+      "score": 78.5,
+      "trend": "rising"
+    },
+    {
+      "name": "Collingwood",
+      "score": 77.6,
+      "trend": "rising"
+    },
+    {
+      "name": "Northcote",
+      "score": 76.6,
+      "trend": "rising"
+    },
+    {
+      "name": "Fitzroy",
+      "score": 74.4,
+      "trend": "rising"
+    },
+    {
+      "name": "Brunswick East",
+      "score": 69.6,
+      "trend": "rising"
+    },
+    {
+      "name": "Yarraville",
+      "score": 69.6,
+      "trend": "rising"
+    },
+    {
+      "name": "Footscray",
+      "score": 63.8,
+      "trend": "rising"
+    },
+    {
+      "name": "Richmond",
+      "score": 61.5,
+      "trend": "rising"
+    },
+    {
+      "name": "Coburg",
+      "score": 60.9,
+      "trend": "rising"
+    },
+    {
+      "name": "Thornbury",
+      "score": 57.1,
+      "trend": "rising"
+    },
+    {
+      "name": "Fitzroy North",
+      "score": 56.3,
+      "trend": "rising"
+    },
+    {
+      "name": "Abbotsford",
+      "score": 54.9,
+      "trend": "rising"
+    },
+    {
+      "name": "Moonee Ponds",
+      "score": 52.0,
+      "trend": "rising"
+    },
+    {
+      "name": "Ripponlea",
+      "score": 49.1,
+      "trend": "rising"
+    },
+    {
+      "name": "Carlton",
+      "score": 45.9,
+      "trend": "rising"
+    },
+    {
+      "name": "North Melbourne",
+      "score": 45.7,
+      "trend": "rising"
+    },
+    {
+      "name": "Ascot Vale",
+      "score": 44.6,
+      "trend": "rising"
+    },
+    {
+      "name": "South Melbourne",
+      "score": 43.8,
+      "trend": "rising"
+    },
+    {
+      "name": "St Kilda",
+      "score": 42.6,
+      "trend": "rising"
+    },
+    {
+      "name": "Windsor",
+      "score": 42.1,
+      "trend": "rising"
+    },
+    {
+      "name": "Balaclava",
+      "score": 41.2,
+      "trend": "rising"
+    },
+    {
+      "name": "Port Melbourne",
+      "score": 41.2,
+      "trend": "rising"
+    },
+    {
+      "name": "Prahran",
+      "score": 39.4,
+      "trend": "rising"
+    },
+    {
+      "name": "Elwood",
+      "score": 30.5,
+      "trend": "rising"
+    },
+    {
+      "name": "Parkville",
+      "score": 27.8,
+      "trend": "rising"
+    },
+    {
+      "name": "Glen Iris",
+      "score": 25.0,
+      "trend": "rising"
+    },
+    {
+      "name": "Caulfield North",
+      "score": 20.5,
+      "trend": "rising"
+    },
+    {
+      "name": "Malvern",
+      "score": 20.0,
+      "trend": "rising"
+    },
+    {
+      "name": "Pascoe Vale South",
+      "score": 17.6,
+      "trend": "stable"
+    },
+    {
+      "name": "South Yarra",
+      "score": 15.8,
+      "trend": "rising"
+    },
+    {
+      "name": "Glen Waverley",
+      "score": 12.1,
+      "trend": "rising"
+    },
+    {
+      "name": "Ringwood",
+      "score": 10.6,
+      "trend": "rising"
+    },
+    {
+      "name": "Albert Park",
+      "score": 2.1,
+      "trend": "stable"
+    },
+    {
+      "name": "Brighton",
+      "score": 2.1,
+      "trend": "stable"
+    },
+    {
+      "name": "Hawthorn",
+      "score": 2.1,
+      "trend": "stable"
+    },
+    {
+      "name": "Moorabbin",
+      "score": 2.1,
+      "trend": "stable"
+    },
+    {
+      "name": "Murumbeena",
+      "score": 2.1,
+      "trend": "stable"
+    },
+    {
+      "name": "Southbank",
+      "score": 2.1,
+      "trend": "stable"
+    },
+    {
+      "name": "Carlton North",
+      "score": 0.3,
+      "trend": "stable"
+    },
+    {
+      "name": "Cheltenham",
+      "score": 0.3,
+      "trend": "stable"
+    },
+    {
+      "name": "Pascoe Vale",
+      "score": 0.3,
+      "trend": "stable"
+    }
+  ]
+}

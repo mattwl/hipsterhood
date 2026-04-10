@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hipsterhood Melbourne — 2014–2026</title>
+
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+        rel="stylesheet"
+        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+        crossorigin="anonymous">
+
+  <!-- Custom styles -->
+  <link href="css/style.css" rel="stylesheet">
+</head>
+<body>
+
+  <!-- ── Navbar ─────────────────────────────────────────────────────────── -->
+  <nav class="navbar navbar-dark bg-dark">
+    <div class="container-fluid">
+      <span class="navbar-brand mb-0 h1">Hipsterhood Melbourne</span>
+      <div class="d-flex align-items-center gap-2">
+        <span class="badge bg-secondary badge-source">2014 data: Broadsheet scrapes</span>
+        <span class="badge bg-info text-dark badge-source">2026 data: OpenStreetMap</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ── Hero ───────────────────────────────────────────────────────────── -->
+  <div class="hero text-center">
+    <div class="container">
+      <img src="img/hipster.jpg" class="hero-img" alt="Melbourne hipster">
+      <h1>Which Melbourne suburb is the most hipster?</h1>
+      <p class="lead">
+        Tracking the rise and fall of Melbourne's inner suburbs from 2014 Broadsheet Magazine data
+        to 2026 OpenStreetMap venue density — 12 years of gentrification in one dashboard.
+      </p>
+    </div>
+  </div>
+
+  <!-- ── Tabs ───────────────────────────────────────────────────────────── -->
+  <div class="container-fluid px-3 px-md-4">
+    <ul class="nav nav-tabs mt-3" id="mainTabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="tab-evo-btn"
+                data-bs-toggle="tab" data-bs-target="#tab-evolution"
+                type="button" role="tab">
+          📈 Evolution
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-rank-btn"
+                data-bs-toggle="tab" data-bs-target="#tab-rankings"
+                type="button" role="tab">
+          🏆 Rankings
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-map-btn"
+                data-bs-toggle="tab" data-bs-target="#tab-map"
+                type="button" role="tab">
+          🗺 Map
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-h2h-btn"
+                data-bs-toggle="tab" data-bs-target="#tab-h2h"
+                type="button" role="tab">
+          ⚔️ Compare
+        </button>
+      </li>
+    </ul>
+
+    <div class="tab-content" id="mainTabContent">
+
+      <!-- ── View 1: Evolution ──────────────────────────────────────────── -->
+      <div class="tab-pane fade show active" id="tab-evolution" role="tabpanel">
+        <div class="row mb-2">
+          <div class="col-12">
+            <h5 class="mb-0">12-Year Hipster Score Evolution</h5>
+            <p class="text-muted small mb-2">
+              Multi-line chart showing each suburb's annual hipster score 2014–2026.
+              Click legend entries to toggle suburbs. Hover the chart for yearly details.
+              Grey band = Melbourne COVID lockdowns (world's longest).
+            </p>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-lg-9 chart-container" id="evolution-chart">
+            <div class="loading-spinner">
+              <div class="spinner-border text-secondary" role="status"></div>
+            </div>
+          </div>
+          <div class="col-lg-3" id="evolution-legend"></div>
+        </div>
+      </div>
+
+      <!-- ── View 2: Rankings ───────────────────────────────────────────── -->
+      <div class="tab-pane fade" id="tab-rankings" role="tabpanel">
+        <div class="row mb-2">
+          <div class="col-12">
+            <h5 class="mb-0">Suburb Rankings by Year</h5>
+            <p class="text-muted small mb-2">
+              Use the slider to animate suburb rankings over time.
+              <span style="color:#59a14f">■ Green</span> = rising vs 2014 baseline (dashed mark).
+              <span style="color:#e15759">■ Red</span> = falling.
+            </p>
+          </div>
+        </div>
+        <div class="year-slider-container d-flex align-items-center gap-3">
+          <label for="year-slider" class="mb-0">Year:</label>
+          <span id="year-display" class="text-primary fw-bold fs-4">2026</span>
+          <input type="range" class="form-range" id="year-slider" style="max-width:320px">
+        </div>
+        <div class="chart-container" id="rankings-chart"></div>
+      </div>
+
+      <!-- ── View 3: Map ────────────────────────────────────────────────── -->
+      <div class="tab-pane fade" id="tab-map" role="tabpanel">
+        <div class="row mb-2">
+          <div class="col-12">
+            <h5 class="mb-0">Hipster Heat Map</h5>
+            <p class="text-muted small mb-2">
+              Choropleth showing suburb hipster scores across Melbourne.
+              Hit <strong>▶ Play</strong> to animate the 12-year shift —
+              inner north dominance giving way to western suburbs and tech precincts.
+            </p>
+          </div>
+        </div>
+        <div class="map-year-slider-container d-flex align-items-center gap-3 mb-2">
+          <label for="map-year-slider" class="mb-0">Year:</label>
+          <span id="map-year-display" class="text-primary fw-bold fs-4">2026</span>
+          <input type="range" class="form-range" id="map-year-slider" style="max-width:280px">
+          <button class="btn btn-sm btn-outline-primary map-play-btn" id="map-play-btn">▶ Play</button>
+        </div>
+        <div class="chart-container" id="map-chart"></div>
+      </div>
+
+      <!-- ── View 4: Head-to-Head ───────────────────────────────────────── -->
+      <div class="tab-pane fade" id="tab-h2h" role="tabpanel">
+        <div class="row mb-2">
+          <div class="col-12">
+            <h5 class="mb-0">Head-to-Head Comparison</h5>
+            <p class="text-muted small mb-2">
+              Compare two suburbs over 12 years. The shaded area shows which suburb
+              was leading at each point in time.
+            </p>
+          </div>
+        </div>
+        <div class="h2h-controls d-flex flex-wrap align-items-center gap-3">
+          <div>
+            <label for="h2h-suburb-a" class="form-label mb-0 me-1">Suburb A:</label>
+            <select class="form-select form-select-sm d-inline-block" id="h2h-suburb-a" style="width:auto"></select>
+          </div>
+          <div class="fw-bold text-muted">vs</div>
+          <div>
+            <label for="h2h-suburb-b" class="form-label mb-0 me-1">Suburb B:</label>
+            <select class="form-select form-select-sm d-inline-block" id="h2h-suburb-b" style="width:auto"></select>
+          </div>
+        </div>
+        <div class="chart-container" id="h2h-chart"></div>
+        <div class="row g-2 mt-1" id="h2h-stats"></div>
+      </div>
+
+    </div><!-- /tab-content -->
+  </div><!-- /container-fluid -->
+
+  <!-- ── Footer ─────────────────────────────────────────────────────────── -->
+  <footer>
+    <div class="container-fluid">
+      <strong>Methodology:</strong>
+      2014 scores derived from 24 weekly Broadsheet Melbourne venue scrapes (Jul 2014 – Feb 2015)
+      via the now-defunct Kimonolabs API; 10 pts per suburb appearance in the weekly top-9,
+      normalised to 0–100.
+      2026 scores: curated weighted count of hipster-relevant OpenStreetMap venue types
+      (cafes, bars, wine bars, vintage shops, art galleries, record stores, bookshops,
+      cycle shops, craft breweries) per suburb, normalised to 0–100.
+      Intermediate years (2016–2024): logistic-curve interpolation with
+      suburb-specific gentrification trajectories and a COVID-19 dip factor for 2020
+      (Melbourne endured the world's longest cumulative lockdown).
+      <br><br>
+      Original project by
+      <a href="https://github.com/mattwl/hipsterhood" target="_blank">mattwl</a> (2015).
+      Rebuilt 2026 with D3.js v7, Bootstrap 5, and OpenStreetMap data.
+      <strong>Note:</strong> intermediate-year scores are modelled, not measured —
+      treat them as indicative of the gentrification trend, not precise statistics.
+    </div>
+  </footer>
+
+  <!-- Bootstrap 5 JS (no jQuery) -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-YvpcrYf0tY3lHB60NNkmXc4s9bIOgUxi8T/jzmX/0RS1F8tQZQVZJJLOjNXGMx/"
+          crossorigin="anonymous"></script>
+
+  <!-- D3.js v7 -->
+  <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+
+  <!-- App (ES module) -->
+  <script type="module" src="js/app.js"></script>
+
+</body>
+</html>
