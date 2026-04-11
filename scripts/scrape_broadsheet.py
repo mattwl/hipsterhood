@@ -42,8 +42,8 @@ try:
 except ImportError:
     sys.exit("Missing dependencies. Run:  pip install requests beautifulsoup4 lxml")
 
-# Optional: set USE_PLAYWRIGHT = True if requests keeps getting 403 from Broadsheet.
-# Requires:  pip install playwright && playwright install chromium
+# USE_PLAYWRIGHT is set via --playwright CLI flag (see main()).
+# Requires:  pip install playwright && python3 -m playwright install chromium
 USE_PLAYWRIGHT = False
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
@@ -586,9 +586,17 @@ def main():
     parser.add_argument("--live-only",    action="store_true", help="Only scrape live Broadsheet (skip Wayback)")
     parser.add_argument("--wayback-only", action="store_true", help="Only scrape Wayback (skip live Broadsheet)")
     parser.add_argument("--resume",       action="store_true", help="Resume interrupted live scrape")
+    parser.add_argument("--playwright",   action="store_true",
+                        help="Use headless Chromium (Playwright) to render JS — needed if Broadsheet is an SPA. "
+                             "Requires: pip install playwright && python3 -m playwright install chromium")
     parser.add_argument("--years",        nargs="+", type=int,
                         help=f"Which historical years to fetch (default: all {list(HISTORICAL_YEARS.keys())})")
     args = parser.parse_args()
+
+    global USE_PLAYWRIGHT
+    if args.playwright:
+        USE_PLAYWRIGHT = True
+        print("Playwright mode enabled — using headless Chromium.")
 
     session = make_session()
 

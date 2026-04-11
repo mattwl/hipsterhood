@@ -36,23 +36,23 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: pip install requests beautifulsoup4 lxml cloudscraper
+        run: pip install requests beautifulsoup4 lxml cloudscraper playwright
+
+      - name: Install Playwright browsers
+        run: python3 -m playwright install chromium --with-deps
 
       - name: Ensure data/raw directory exists
         run: mkdir -p data/raw
 
       - name: Run scraper
         env:
-          # Optional: add a BROADSHEET_COOKIE secret in repo settings
-          # if Cloudflare blocks the runner (Settings → Secrets → Actions).
-          # Value: the cf_clearance cookie from your browser session on broadsheet.com.au
           BROADSHEET_COOKIE: ${{ secrets.BROADSHEET_COOKIE }}
         run: |
           MODE="${{ github.event.inputs.mode || 'live-only' }}"
           if [ "$MODE" = "full" ]; then
-            python3 scripts/scrape_broadsheet.py
+            python3 scripts/scrape_broadsheet.py --playwright
           else
-            python3 scripts/scrape_broadsheet.py --${MODE}
+            python3 scripts/scrape_broadsheet.py --${MODE} --playwright
           fi
 
       - name: Process scraped data into visualisation format
