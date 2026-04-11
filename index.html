@@ -105,10 +105,14 @@
       a neighbourhood bar scene that grew quietly but persistently. West Melbourne and
       Brunswick East both entered the top ten from almost nothing. Fitzroy, the original
       creative heartland, slipped from second to fifth — not in decline but overtaken.
-      Windsor and Pascoe Vale South, prominent fixtures in the original 2014 data, have
-      all but vanished from Broadsheet's current editorial radar.
-      Each year's 100 points are shared proportionally across suburbs, so these shifts
-      represent real changes in where Broadsheet's attention sits, not just sampling noise.
+      Thornbury was a genuine mid-tier presence in 2014, level with Brunswick and St Kilda,
+      but has all but disappeared from Broadsheet's radar by 2026 — its moment seems to
+      have passed without a second act. Northcote, by contrast, has held a small but
+      consistent position across both periods, never breaking through but never fading either.
+      Windsor and Pascoe Vale South, prominent in the original 2014 data, have similarly
+      vanished from current coverage. Each year's 100 points are shared proportionally
+      across suburbs, so these shifts represent real changes in where Broadsheet's
+      attention sits, not just sampling noise.
     </p>
     <p>
       The original version of this project was built in 2014–15 as one of my first
@@ -146,10 +150,12 @@ d3.json("data/combined.json").then(data => {
     s2026: s.scores[idx26] || 0,
   }));
 
-  // Union of top 10 from each year — captures both risers and fallers
+  // Union of top 10 from each year, plus forced inclusions
+  const forceInclude = new Set(["Thornbury", "Northcote"]);
   const top14names = new Set([
     ...all.slice().sort((a,b) => b.s2014 - a.s2014).slice(0,10).map(s => s.name),
     ...all.slice().sort((a,b) => b.s2026 - a.s2026).slice(0,10).map(s => s.name),
+    ...forceInclude,
   ]);
   const shown = all.filter(s => top14names.has(s.name));
 
