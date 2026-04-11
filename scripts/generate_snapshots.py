@@ -175,11 +175,11 @@ SUBURB_BBOXES = {
 # ─── Scoring helpers ──────────────────────────────────────────────────────────
 
 def normalise(d: dict) -> dict:
-    """Normalise a {name: value} dict to 0–100."""
+    """Distribute 100 points proportionally across suburbs (pool-based index)."""
     if not d:
         return {}
-    mv = max(d.values()) or 1
-    return {k: round(v / mv * 100, 1) for k, v in d.items()}
+    total = sum(d.values()) or 1
+    return {k: round(v / total * 100, 1) for k, v in d.items()}
 
 
 def logistic(t: float) -> float:
@@ -210,7 +210,7 @@ def interpolate_score(s2014: float, s2026: float, year: int,
     if year == 2020:
         base *= covid_factor
 
-    return round(max(0.0, min(100.0, base + noise)), 1)
+    return round(max(0.0, base + noise), 1)
 
 
 # ─── GeoJSON builder ──────────────────────────────────────────────────────────
@@ -253,7 +253,8 @@ def main():
     # ── 1. Load 2014 baseline ──
     print("Loading 2014 baseline …")
     data_2014 = load_2014()
-    scores_2014 = {s["name"]: s["score"] for s in data_2014["suburbs"]}
+    # Re-normalise 2014 scores using the same pool method for consistency
+    scores_2014 = normalise({s["name"]: s["score"] for s in data_2014["suburbs"]})
     print(f"  {len(scores_2014)} suburbs in 2014 data")
 
     # ── 2. Normalise 2026 curated scores ──
@@ -314,7 +315,7 @@ def main():
     suburb_entries = []
     for i, name in enumerate(all_suburbs):
         scores_list = [all_snapshots[y].get(name, 0.0) for y in YEARS]
-        if max(scores_list) < 5:
+        if max(scores_list) < 1:
             continue
         s14 = scores_list[0]
         s26 = scores_list[-1]

@@ -96,7 +96,7 @@ function initEvolution(data) {
   svg.append("text").attr("class", "axis-label")
     .attr("transform", "rotate(-90)")
     .attr("x", -h / 2).attr("y", -38)
-    .attr("text-anchor", "middle").text("Hipster Score (0–100)");
+    .attr("text-anchor", "middle").text("Pool share (pts/yr, Σ = 100)");
 
   // Line generator
   const lineGen = d3.line()
@@ -223,14 +223,36 @@ function buildEvolutionLegend(data, suburbs, visibleSet, pathsSel) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// VIEW 2 — Rankings Bar Chart (animated by year)
+// VIEW 2 — Bump / Rank Chart (ladder of suburb positions over time)
 // ══════════════════════════════════════════════════════════════════════════════
 
 function initRankings(data) {
-  let currentYearIdx = data.years.length - 1;  // start at 2026
+  const N = 15;  // top N non-CBD suburbs to show
+  const { years } = data;
 
-  const margin = { top: 20, right: 80, bottom: 40, left: 130 };
-  const { W, H, w, h } = svgDims("rankings-chart", 600, margin);
+  // Top N suburbs by cumulative score (excl. CBD)
+  const suburbs = data.suburbs
+    .filter(s => s.type !== "cbd")
+    .sort((a, b) => b.totalScore - a.totalScore)
+    .slice(0, N);
+
+  // Compute rank per suburb per year
+  const ranksByYear = {};
+  years.forEach(year => {
+    const idx = years.indexOf(year);
+    const sorted = [...suburbs].sort(
+      (a, b) => b.dataPoints[idx].score - a.dataPoints[idx].score
+    );
+    ranksByYear[year] = Object.fromEntries(sorted.map((s, i) => [s.name, i + 1]));
+  });
+
+  const enriched = suburbs.map(s => ({
+    ...s,
+    ranks: years.map(y => ranksByYear[y][s.name]),
+  }));
+
+  const margin = { top: 20, right: 130, bottom: 44, left: 48 };
+  const { W, H, w, h } = svgDims("rankings-chart", 540, margin);
 
   const svg = d3.select("#rankings-chart")
     .append("svg")
@@ -239,121 +261,121 @@ function initRankings(data) {
     .append("g")
     .attr("transform", `translate(${margin.left},${margin.top})`);
 
-  // Year label
-  const yearText = d3.select("#year-display");
-
-  // Slider
-  d3.select("#year-slider")
-    .attr("min", 0)
-    .attr("max", data.years.length - 1)
-    .attr("value", currentYearIdx)
-    .on("input", function () {
-      currentYearIdx = +this.value;
-      updateBars(currentYearIdx);
-    });
-
-  // Scales
-  const yScale = d3.scaleBand()
+  const xScale = d3.scalePoint().domain(years).range([0, w]).padding(0.2);
+  // Rank 1 at top → map rank N to y=h
+  const yScale = d3.scalePoint()
+    .domain(d3.range(1, N + 1))
     .range([0, h])
-    .padding(0.22);
+    .padding(0.25);
 
-  const xScale = d3.scaleLinear().range([0, w]);
+  // Grid lines (horizontal, one per rank)
+  svg.append("g").attr("class", "grid")
+    .selectAll("line")
+    .data(d3.range(1, N + 1))
+    .join("line")
+    .attr("x1", 0).attr("x2", w)
+    .attr("y1", d => yScale(d)).attr("y2", d => yScale(d))
+    .attr("stroke", "#e8e8e8").attr("stroke-width", 1);
 
-  const xAxisG = svg.append("g").attr("class", "axis").attr("transform", `translate(0,${h})`);
-  const yAxisG = svg.append("g").attr("class", "axis");
+  // Axes
+  svg.append("g").attr("class", "axis")
+    .attr("transform", `translate(0,${h})`)
+    .call(d3.axisBottom(xScale).tickFormat(d3.format("d")));
+  svg.append("g").attr("class", "axis")
+    .call(d3.axisLeft(yScale).tickFormat(d => `#${d}`));
 
   svg.append("text").attr("class", "axis-label")
-    .attr("x", w / 2).attr("y", h + 36)
-    .attr("text-anchor", "middle").text("Hipster Score (0–100)");
+    .attr("x", w / 2).attr("y", h + 38)
+    .attr("text-anchor", "middle").text("Year");
+  svg.append("text").attr("class", "axis-label")
+    .attr("transform", "rotate(-90)")
+    .attr("x", -h / 2).attr("y", -36)
+    .attr("text-anchor", "middle").text("Rank");
 
-  // Legend for trend colours
-  const legendY = -18;
-  const trendInfo = [
-    { cls: "bar-rising", label: "Rising since 2014" },
-    { cls: "bar-stable",  label: "Stable" },
-    { cls: "bar-falling", label: "Falling since 2014" },
-  ];
-  let lx = 0;
-  trendInfo.forEach(t => {
-    svg.append("rect").attr("class", t.cls).attr("x", lx).attr("y", legendY - 8).attr("width", 14).attr("height", 10).attr("rx", 2);
-    svg.append("text").attr("x", lx + 17).attr("y", legendY).attr("font-size", 10).attr("fill", "#555").text(t.label);
-    lx += t.label.length * 5.8 + 26;
+  // Track which suburb is highlighted (click to toggle)
+  let highlighted = null;
+
+  const lineGen = d3.line()
+    .x((_, i) => xScale(years[i]))
+    .y(d => yScale(d))
+    .curve(d3.curveMonotoneX);
+
+  // Lines
+  const lines = svg.selectAll(".bump-line")
+    .data(enriched, s => s.name)
+    .join("path")
+    .attr("class", "bump-line")
+    .attr("stroke", s => s.color)
+    .attr("d", s => lineGen(s.ranks))
+    .on("click", (_, s) => toggleHighlight(s.name))
+    .on("pointerenter", function (event, s) {
+      if (!highlighted) d3.select(this).attr("stroke-width", 4);
+    })
+    .on("pointerleave", function () {
+      if (!highlighted) d3.select(this).attr("stroke-width", 2.5);
+    });
+
+  // Dots + rank badges
+  enriched.forEach(s => {
+    years.forEach((year, i) => {
+      const cx = xScale(year), cy = yScale(s.ranks[i]);
+      const score = s.dataPoints[i].score;
+
+      svg.append("circle")
+        .attr("class", "bump-dot")
+        .attr("cx", cx).attr("cy", cy).attr("r", 8)
+        .attr("fill", s.color).attr("stroke", "#fff").attr("stroke-width", 1.5)
+        .attr("data-suburb", s.name)
+        .on("click", () => toggleHighlight(s.name))
+        .on("pointerenter", event => showTooltip(
+          `<strong>${s.name}</strong><br>` +
+          `${year}: Rank <b>#${s.ranks[i]}</b><br>` +
+          `Pool share: <b>${score.toFixed(2)} pts</b>`,
+          event
+        ))
+        .on("pointermove", moveTooltip)
+        .on("pointerleave", hideTooltip);
+
+      svg.append("text")
+        .attr("class", "bump-rank-badge")
+        .attr("x", cx).attr("y", cy)
+        .attr("data-suburb", s.name)
+        .text(s.ranks[i]);
+    });
   });
 
-  function updateBars(yearIdx) {
-    const year  = data.years[yearIdx];
-    yearText.text(year);
+  // Labels at the 2026 end
+  const lastIdx = years.length - 1;
+  svg.selectAll(".bump-label")
+    .data(enriched, s => s.name)
+    .join("text")
+    .attr("class", "bump-label")
+    .attr("x", xScale(years[lastIdx]) + 14)
+    .attr("y", s => yScale(s.ranks[lastIdx]))
+    .attr("fill", s => s.color)
+    .attr("data-suburb", s.name)
+    .text(s => s.name);
 
-    // Sort suburbs by score for this year (desc), exclude CBD
-    const suburbs = data.suburbs
-      .filter(s => s.type !== "cbd")
-      .map(s => ({ ...s, score: s.dataPoints[yearIdx]?.score ?? 0 }))
-      .sort((a, b) => b.score - a.score);
+  function toggleHighlight(name) {
+    highlighted = highlighted === name ? null : name;
+    lines.attr("class", s => {
+      if (!highlighted) return "bump-line";
+      return `bump-line ${s.name === highlighted ? "highlighted" : "dimmed"}`;
+    }).attr("stroke-width", 2.5);
 
-    yScale.domain(suburbs.map(s => s.name));
-    xScale.domain([0, d3.max(suburbs, s => s.score) * 1.15]);
-
-    xAxisG.transition().duration(400).call(d3.axisBottom(xScale).ticks(5));
-    yAxisG.transition().duration(400).call(d3.axisLeft(yScale).tickSize(0));
-    yAxisG.select(".domain").remove();
-
-    // Bars
-    const bars = svg.selectAll(".rank-bar")
-      .data(suburbs, s => s.name);
-
-    bars.join(
-      enter => enter.append("rect")
-        .attr("class", s => `rank-bar bar-${s.trend}`)
-        .attr("x", 0)
-        .attr("y", s => yScale(s.name))
-        .attr("height", yScale.bandwidth())
-        .attr("width", 0),
-      update => update.attr("class", s => `rank-bar bar-${s.trend}`)
-    )
-      .on("pointerenter", (event, s) => showTooltip(
-        `<strong style="color:${TREND_COLOURS[s.trend]}">${s.name}</strong><br>` +
-        `Score: <b>${s.score.toFixed(1)}</b><br>` +
-        `2014 baseline: ${s.score2014.toFixed(1)}<br>` +
-        `Trend: ${TREND_ARROWS[s.trend]} ${s.trend}`,
-        event
-      ))
-      .on("pointermove", moveTooltip)
-      .on("pointerleave", hideTooltip)
-      .transition().duration(500).ease(d3.easeCubicOut)
-      .attr("y", s => yScale(s.name))
-      .attr("height", yScale.bandwidth())
-      .attr("width", s => xScale(s.score));
-
-    // 2014 baseline marker (only visible for years > 2014)
-    if (yearIdx > 0) {
-      const markers = svg.selectAll(".marker-2014").data(suburbs, s => s.name);
-      markers.join(
-        enter => enter.append("line").attr("class", "marker-2014"),
-        update => update
-      )
-        .transition().duration(500)
-        .attr("y1", s => yScale(s.name))
-        .attr("y2", s => yScale(s.name) + yScale.bandwidth())
-        .attr("x1", s => xScale(s.score2014))
-        .attr("x2", s => xScale(s.score2014));
-    } else {
-      svg.selectAll(".marker-2014").remove();
-    }
-
-    // Score labels
-    const labels = svg.selectAll(".rank-score-label").data(suburbs, s => s.name);
-    labels.join(
-      enter => enter.append("text").attr("class", "rank-score-label").attr("x", 0),
-      update => update
-    )
-      .attr("y", s => yScale(s.name) + yScale.bandwidth() / 2 + 4)
-      .attr("font-size", 10).attr("fill", "#666")
-      .transition().duration(500)
-      .attr("x", s => xScale(s.score) + 4)
-      .text(s => s.score.toFixed(1));
+    svg.selectAll(".bump-dot").attr("opacity", function () {
+      if (!highlighted) return 1;
+      return this.getAttribute("data-suburb") === highlighted ? 1 : 0.08;
+    });
+    svg.selectAll(".bump-rank-badge").attr("opacity", function () {
+      if (!highlighted) return 1;
+      return this.getAttribute("data-suburb") === highlighted ? 1 : 0.08;
+    });
+    svg.selectAll(".bump-label").attr("opacity", function () {
+      if (!highlighted) return 1;
+      return this.getAttribute("data-suburb") === highlighted ? 1 : 0.12;
+    });
   }
-
-  updateBars(currentYearIdx);
 }
 
 // ══════════════════════════════════════════════════════════════════════════════

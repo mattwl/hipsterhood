@@ -5,217 +5,217 @@
   "suburbs": [
     {
       "name": "Melbourne",
-      "score": 55.1,
+      "score": 12.6,
       "trend": "falling"
-    },
-    {
-      "name": "Brunswick",
-      "score": 47.5,
-      "trend": "rising"
-    },
-    {
-      "name": "Fitzroy",
-      "score": 42.7,
-      "trend": "falling"
-    },
-    {
-      "name": "Collingwood",
-      "score": 40.5,
-      "trend": "stable"
-    },
-    {
-      "name": "Northcote",
-      "score": 38.6,
-      "trend": "rising"
-    },
-    {
-      "name": "Brunswick East",
-      "score": 38.1,
-      "trend": "rising"
-    },
-    {
-      "name": "Richmond",
-      "score": 33.5,
-      "trend": "stable"
     },
     {
       "name": "Thornbury",
-      "score": 33.5,
-      "trend": "rising"
+      "score": 3.7,
+      "trend": "stable"
     },
     {
-      "name": "Yarraville",
-      "score": 33.5,
-      "trend": "rising"
+      "name": "Richmond",
+      "score": 3.4,
+      "trend": "stable"
     },
     {
-      "name": "Coburg",
-      "score": 31.1,
-      "trend": "rising"
+      "name": "Brunswick East",
+      "score": 3.3,
+      "trend": "stable"
     },
     {
-      "name": "Abbotsford",
-      "score": 30.4,
-      "trend": "rising"
+      "name": "Fitzroy",
+      "score": 3.3,
+      "trend": "falling"
     },
     {
       "name": "Cremorne",
-      "score": 29.5,
-      "trend": "rising"
-    },
-    {
-      "name": "Footscray",
-      "score": 29.3,
-      "trend": "rising"
-    },
-    {
-      "name": "Fitzroy North",
-      "score": 27.6,
-      "trend": "rising"
-    },
-    {
-      "name": "Moonee Ponds",
-      "score": 26.9,
-      "trend": "rising"
-    },
-    {
-      "name": "Ripponlea",
-      "score": 26.7,
-      "trend": "rising"
-    },
-    {
-      "name": "North Melbourne",
-      "score": 24.5,
-      "trend": "stable"
-    },
-    {
-      "name": "Windsor",
-      "score": 24.0,
-      "trend": "falling"
-    },
-    {
-      "name": "South Melbourne",
-      "score": 23.7,
-      "trend": "falling"
-    },
-    {
-      "name": "Ascot Vale",
-      "score": 23.2,
-      "trend": "rising"
-    },
-    {
-      "name": "Carlton",
-      "score": 22.7,
-      "trend": "falling"
-    },
-    {
-      "name": "Balaclava",
-      "score": 22.6,
-      "trend": "stable"
-    },
-    {
-      "name": "St Kilda",
-      "score": 21.3,
-      "trend": "falling"
-    },
-    {
-      "name": "Prahran",
-      "score": 19.9,
-      "trend": "falling"
-    },
-    {
-      "name": "Port Melbourne",
-      "score": 18.8,
-      "trend": "rising"
-    },
-    {
-      "name": "Elwood",
-      "score": 16.0,
+      "score": 3.2,
       "trend": "stable"
     },
     {
       "name": "Pascoe Vale South",
-      "score": 15.1,
-      "trend": "falling"
-    },
-    {
-      "name": "Glen Iris",
-      "score": 13.7,
+      "score": 3.0,
       "trend": "stable"
     },
     {
-      "name": "Parkville",
-      "score": 13.5,
+      "name": "St Kilda",
+      "score": 2.9,
       "trend": "stable"
     },
     {
-      "name": "Malvern",
-      "score": 10.3,
+      "name": "South Melbourne",
+      "score": 2.8,
       "trend": "stable"
     },
     {
-      "name": "Caulfield North",
-      "score": 9.5,
+      "name": "Balaclava",
+      "score": 2.7,
+      "trend": "stable"
+    },
+    {
+      "name": "Fitzroy North",
+      "score": 2.6,
       "trend": "stable"
     },
     {
       "name": "South Yarra",
-      "score": 8.3,
+      "score": 2.6,
+      "trend": "stable"
+    },
+    {
+      "name": "Ripponlea",
+      "score": 2.5,
+      "trend": "stable"
+    },
+    {
+      "name": "Carlton",
+      "score": 2.4,
       "trend": "falling"
     },
     {
       "name": "Ringwood",
-      "score": 6.3,
+      "score": 2.4,
+      "trend": "stable"
+    },
+    {
+      "name": "Brunswick",
+      "score": 2.3,
+      "trend": "stable"
+    },
+    {
+      "name": "Elwood",
+      "score": 2.3,
+      "trend": "stable"
+    },
+    {
+      "name": "Collingwood",
+      "score": 2.0,
+      "trend": "stable"
+    },
+    {
+      "name": "Moonee Ponds",
+      "score": 1.9,
+      "trend": "stable"
+    },
+    {
+      "name": "Northcote",
+      "score": 1.8,
+      "trend": "stable"
+    },
+    {
+      "name": "Ascot Vale",
+      "score": 1.6,
+      "trend": "stable"
+    },
+    {
+      "name": "Yarraville",
+      "score": 1.5,
+      "trend": "stable"
+    },
+    {
+      "name": "Abbotsford",
+      "score": 1.4,
+      "trend": "stable"
+    },
+    {
+      "name": "Prahran",
+      "score": 1.4,
+      "trend": "stable"
+    },
+    {
+      "name": "Windsor",
+      "score": 1.3,
+      "trend": "falling"
+    },
+    {
+      "name": "Caulfield North",
+      "score": 1.2,
       "trend": "stable"
     },
     {
       "name": "Glen Waverley",
-      "score": 5.9,
+      "score": 1.2,
+      "trend": "stable"
+    },
+    {
+      "name": "Footscray",
+      "score": 0.9,
       "trend": "stable"
     },
     {
       "name": "Carlton North",
-      "score": 2.9,
+      "score": 0.8,
       "trend": "stable"
     },
     {
       "name": "Cheltenham",
-      "score": 2.9,
+      "score": 0.8,
+      "trend": "stable"
+    },
+    {
+      "name": "Coburg",
+      "score": 0.8,
       "trend": "stable"
     },
     {
       "name": "Pascoe Vale",
-      "score": 2.9,
+      "score": 0.8,
+      "trend": "stable"
+    },
+    {
+      "name": "North Melbourne",
+      "score": 0.7,
+      "trend": "stable"
+    },
+    {
+      "name": "Port Melbourne",
+      "score": 0.7,
+      "trend": "stable"
+    },
+    {
+      "name": "Glen Iris",
+      "score": 0.3,
+      "trend": "stable"
+    },
+    {
+      "name": "Malvern",
+      "score": 0.1,
       "trend": "stable"
     },
     {
       "name": "Albert Park",
-      "score": 1.2,
+      "score": 0.0,
       "trend": "stable"
     },
     {
       "name": "Brighton",
-      "score": 1.2,
+      "score": 0.0,
       "trend": "stable"
     },
     {
       "name": "Hawthorn",
-      "score": 1.2,
+      "score": 0.0,
       "trend": "stable"
     },
     {
       "name": "Moorabbin",
-      "score": 1.2,
+      "score": 0.0,
       "trend": "stable"
     },
     {
       "name": "Murumbeena",
-      "score": 1.2,
+      "score": 0.0,
+      "trend": "stable"
+    },
+    {
+      "name": "Parkville",
+      "score": 0.0,
       "trend": "stable"
     },
     {
       "name": "Southbank",
-      "score": 1.2,
+      "score": 0.0,
       "trend": "stable"
     }
   ]
