@@ -3,172 +3,250 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Hipsterhood Melbourne — 2014–2026</title>
+  <title>Melbourne Hipster Index 2014 → 2026</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  <!-- Bootstrap 5 -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-        rel="stylesheet"
-        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
-        crossorigin="anonymous">
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #fff;
+      color: #222;
+      line-height: 1.6;
+    }
 
-  <!-- Custom styles -->
-  <link href="css/style.css" rel="stylesheet">
+    .page {
+      max-width: 780px;
+      margin: 0 auto;
+      padding: 2.5rem 1.5rem 3rem;
+    }
+
+    h1 {
+      font-size: 1.45rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .subtitle {
+      color: #999;
+      font-size: 0.82rem;
+      margin-top: 0.2rem;
+    }
+
+    #chart {
+      margin: 2rem 0 0.5rem;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.2rem 2rem;
+      margin: 0.75rem 0 2rem;
+      font-size: 0.78rem;
+      color: #666;
+    }
+
+    .legend span {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .legend i {
+      display: inline-block;
+      width: 22px;
+      height: 2.5px;
+      border-radius: 2px;
+    }
+
+    .prose p {
+      font-size: 0.9rem;
+      color: #444;
+      max-width: 640px;
+      margin-bottom: 1rem;
+    }
+
+    .prose p:last-child { margin-bottom: 0; }
+
+    hr {
+      border: none;
+      border-top: 1px solid #eee;
+      margin: 2rem 0;
+    }
+
+    footer {
+      font-size: 0.74rem;
+      color: #aaa;
+      max-width: 640px;
+    }
+
+    footer a { color: #999; }
+  </style>
 </head>
 <body>
+<div class="page">
 
-  <!-- ── Navbar ─────────────────────────────────────────────────────────── -->
-  <nav class="navbar navbar-dark bg-dark">
-    <div class="container-fluid">
-      <span class="navbar-brand mb-0 h1">Hipsterhood Melbourne</span>
-      <span class="text-white-50 small ms-2">suburb hipster index 2014–2026</span>
-    </div>
-  </nav>
+  <h1>Melbourne Hipster Index</h1>
+  <p class="subtitle">Which suburbs rose and fell on Broadsheet Melbourne, 2014 → 2026</p>
 
-  <!-- ── Tabs ───────────────────────────────────────────────────────────── -->
-  <div class="container-fluid px-3 px-md-4">
-    <ul class="nav nav-tabs mt-3" id="mainTabs" role="tablist">
-      <li class="nav-item" role="presentation">
-        <button class="nav-link active" id="tab-evo-btn"
-                data-bs-toggle="tab" data-bs-target="#tab-evolution"
-                type="button" role="tab">
-          Evolution
-        </button>
-      </li>
-      <li class="nav-item" role="presentation">
-        <button class="nav-link" id="tab-rank-btn"
-                data-bs-toggle="tab" data-bs-target="#tab-rankings"
-                type="button" role="tab">
-          Rankings
-        </button>
-      </li>
-      <li class="nav-item" role="presentation">
-        <button class="nav-link" id="tab-map-btn"
-                data-bs-toggle="tab" data-bs-target="#tab-map"
-                type="button" role="tab">
-          Map
-        </button>
-      </li>
-      <li class="nav-item" role="presentation">
-        <button class="nav-link" id="tab-h2h-btn"
-                data-bs-toggle="tab" data-bs-target="#tab-h2h"
-                type="button" role="tab">
-          Compare
-        </button>
-      </li>
-    </ul>
+  <div id="chart"><p style="color:#bbb;padding:3rem 0">Loading…</p></div>
 
-    <div class="tab-content" id="mainTabContent">
+  <div class="legend">
+    <span><i style="background:#e07b39"></i>Risen in the rankings</span>
+    <span><i style="background:#5b8db8"></i>Fallen in the rankings</span>
+    <span><i style="background:#c8c8c8"></i>Roughly stable</span>
+  </div>
 
-      <!-- ── View 1: Evolution ──────────────────────────────────────────── -->
-      <div class="tab-pane fade show active" id="tab-evolution" role="tabpanel">
-        <div class="row mb-2 mt-2">
-          <div class="col-12">
-            <h6 class="mb-0 text-muted fw-normal">
-              Pool share per suburb 2014–2026. Each year's 100 points are divided
-              proportionally by venue weight. Click legend to toggle suburbs.
-              Grey band = Melbourne COVID lockdowns.
-            </h6>
-          </div>
-        </div>
-        <div class="row">
-          <div class="col-lg-9 chart-container" id="evolution-chart">
-            <div class="loading-spinner">
-              <div class="spinner-border text-secondary" role="status"></div>
-            </div>
-          </div>
-          <div class="col-lg-3" id="evolution-legend"></div>
-        </div>
-      </div>
+  <div class="prose">
+    <p>
+      Melbourne's inner-north has reshuffled considerably over 12 years.
+      Collingwood has been the decade's biggest climber — jumping from fifth to second —
+      as Smith Street and Wellington Street became the city's most concentrated strip
+      of independent venues. Carlton North barely registered in 2014 and now sits fourth,
+      a neighbourhood bar scene that grew quietly but persistently. West Melbourne and
+      Brunswick East both entered the top ten from almost nothing. Fitzroy, the original
+      creative heartland, slipped from second to fifth — not in decline but overtaken.
+      Windsor and Pascoe Vale South, prominent fixtures in the original 2014 data, have
+      all but vanished from Broadsheet's current editorial radar.
+      Each year's 100 points are shared proportionally across suburbs, so these shifts
+      represent real changes in where Broadsheet's attention sits, not just sampling noise.
+    </p>
+    <p>
+      The original version of this project was built in 2014–15 as one of my first
+      experiments with D3.js — scraping Broadsheet's weekly venue rankings through
+      the now-defunct Kimonolabs API and turning the raw numbers into a chart.
+      This rebuild, ten years on, was generated almost entirely through conversation
+      with Claude: the data pipeline, the chart, and this page were all written by AI.
+      I described what I wanted, pointed out what wasn't working, and iterated from there.
+      Same dataset, same D3 library underneath, completely different process.
+      A reasonable marker of how much the tooling has changed in a decade.
+    </p>
+  </div>
 
-      <!-- ── View 2: Rankings ───────────────────────────────────────────── -->
-      <div class="tab-pane fade" id="tab-rankings" role="tabpanel">
-        <div class="row mb-2 mt-2">
-          <div class="col-12">
-            <h6 class="mb-0 text-muted fw-normal">
-              Rank ladder for the top 15 suburbs across all 7 years.
-              Rank 1 = highest pool share that year. Click a line to highlight it.
-            </h6>
-          </div>
-        </div>
-        <div class="chart-container" id="rankings-chart"></div>
-      </div>
+  <hr>
 
-      <!-- ── View 3: Map ────────────────────────────────────────────────── -->
-      <div class="tab-pane fade" id="tab-map" role="tabpanel">
-        <div class="row mb-2 mt-2">
-          <div class="col-12">
-            <h6 class="mb-0 text-muted fw-normal">
-              Choropleth map of suburb pool shares by year.
-              Hit <strong>▶ Play</strong> to animate the 12-year shift.
-            </h6>
-          </div>
-        </div>
-        <div class="map-year-slider-container d-flex align-items-center gap-3 mb-2">
-          <label for="map-year-slider" class="mb-0 small">Year:</label>
-          <span id="map-year-display" class="fw-bold">2026</span>
-          <input type="range" class="form-range" id="map-year-slider" style="max-width:280px">
-          <button class="btn btn-sm btn-outline-secondary map-play-btn" id="map-play-btn">▶ Play</button>
-        </div>
-        <div class="chart-container" id="map-chart"></div>
-      </div>
-
-      <!-- ── View 4: Head-to-Head ───────────────────────────────────────── -->
-      <div class="tab-pane fade" id="tab-h2h" role="tabpanel">
-        <div class="row mb-2 mt-2">
-          <div class="col-12">
-            <h6 class="mb-0 text-muted fw-normal">
-              Compare two suburbs' pool share over 12 years.
-              The shaded area shows who was leading at each point in time.
-            </h6>
-          </div>
-        </div>
-        <div class="h2h-controls d-flex flex-wrap align-items-center gap-3">
-          <div>
-            <label for="h2h-suburb-a" class="form-label mb-0 me-1 small">Suburb A:</label>
-            <select class="form-select form-select-sm d-inline-block" id="h2h-suburb-a" style="width:auto"></select>
-          </div>
-          <div class="fw-bold text-muted">vs</div>
-          <div>
-            <label for="h2h-suburb-b" class="form-label mb-0 me-1 small">Suburb B:</label>
-            <select class="form-select form-select-sm d-inline-block" id="h2h-suburb-b" style="width:auto"></select>
-          </div>
-        </div>
-        <div class="chart-container" id="h2h-chart"></div>
-        <div class="row g-2 mt-1" id="h2h-stats"></div>
-      </div>
-
-    </div><!-- /tab-content -->
-  </div><!-- /container-fluid -->
-
-  <!-- ── Footer ─────────────────────────────────────────────────────────── -->
   <footer>
-    <div class="container-fluid">
-      <strong>Methodology:</strong>
-      Each year's 100 points are distributed proportionally across Melbourne suburbs
-      by their weighted hipster venue score. 2014 anchor: 24 weekly Broadsheet Melbourne
-      scrapes (Jul 2014 – Feb 2015) via Kimonolabs, 10 pts per suburb per top-9 appearance.
-      2026 anchor: curated weighted counts of hipster-relevant venue types per suburb
-      (cafes, bars, wine bars, vintage, galleries, record stores, bookshops, cycle shops,
-      craft breweries). Intermediate years 2016–2024: logistic-curve interpolation with
-      suburb-specific gentrification trajectories and a COVID-19 dip for 2020.
-      <br><br>
-      Original project by
-      <a href="https://github.com/mattwl/hipsterhood" target="_blank">mattwl</a> (2015).
-      Rebuilt 2026 with D3.js v7 and Bootstrap 5.
-      Intermediate-year scores are modelled, not measured.
-    </div>
+    <strong>Data:</strong> 2014 — 24 weekly Broadsheet Melbourne scrapes via Kimonolabs (Jul–Dec 2014), 40 suburbs.
+    2026 — hand-curated Broadsheet hotlist, April 2026, 100 venues.
+    Each year's 100&nbsp;pts distributed proportionally by suburb.
+    Original project by <a href="https://github.com/mattwl/hipsterhood" target="_blank">mattwl</a> (2015).
+    Rebuilt 2026 with D3&nbsp;v7 and Claude.
   </footer>
 
-  <!-- Bootstrap 5 JS (no jQuery) -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
-          integrity="sha384-YvpcrYf0tY3lHB60NNkmXc4s9bIOgUxi8T/jzmX/0RS1F8tQZQVZJJLOjNXGMx/"
-          crossorigin="anonymous"></script>
+</div>
 
-  <!-- D3.js v7 -->
-  <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<script>
+d3.json("data/combined.json").then(data => {
+  const idx14 = data.years.indexOf(2014);
+  const idx26 = data.years.indexOf(2026);
 
-  <!-- App (ES module) -->
-  <script type="module" src="js/app.js"></script>
+  const all = data.suburbs.map(s => ({
+    name:  s.name,
+    s2014: s.scores[idx14] || 0,
+    s2026: s.scores[idx26] || 0,
+  }));
 
+  // Union of top 10 from each year — captures both risers and fallers
+  const top14names = new Set([
+    ...all.slice().sort((a,b) => b.s2014 - a.s2014).slice(0,10).map(s => s.name),
+    ...all.slice().sort((a,b) => b.s2026 - a.s2026).slice(0,10).map(s => s.name),
+  ]);
+  const shown = all.filter(s => top14names.has(s.name));
+
+  // Rank within shown set (0-indexed, 0 = best)
+  const sorted14 = shown.slice().sort((a,b) => b.s2014 - a.s2014);
+  const sorted26 = shown.slice().sort((a,b) => b.s2026 - a.s2026);
+  const r14 = new Map(sorted14.map((s,i) => [s.name, i]));
+  const r26 = new Map(sorted26.map((s,i) => [s.name, i]));
+
+  const N  = shown.length;
+  const W  = 680;
+  const H  = Math.max(480, N * 33 + 60);
+  const mT = 44, mB = 16, mL = 170, mR = 175;
+  const iW = W - mL - mR;
+  const iH = H - mT - mB;
+
+  const yScale = d3.scalePoint()
+    .domain(d3.range(N))
+    .range([0, iH])
+    .padding(0.4);
+
+  const svg = d3.select("#chart")
+    .html("")
+    .append("svg")
+    .attr("viewBox", `0 0 ${W} ${H}`)
+    .style("width", "100%")
+    .style("max-width", `${W}px`);
+
+  const g = svg.append("g").attr("transform", `translate(${mL},${mT})`);
+
+  // Axis guide lines
+  [0, iW].forEach(x =>
+    g.append("line")
+      .attr("x1", x).attr("y1", -6)
+      .attr("x2", x).attr("y2", iH + 6)
+      .attr("stroke", "#ebebeb").attr("stroke-width", 1)
+  );
+
+  // Year labels
+  [["2014", 0], ["2026", iW]].forEach(([label, x]) =>
+    g.append("text")
+      .attr("x", x).attr("y", -20)
+      .attr("text-anchor", "middle")
+      .attr("font-size", 13).attr("font-weight", 600).attr("fill", "#333")
+      .text(label)
+  );
+
+  // Lines + endpoint dots
+  shown.forEach(s => {
+    const y1    = yScale(r14.get(s.name));
+    const y2    = yScale(r26.get(s.name));
+    const shift = r14.get(s.name) - r26.get(s.name); // positive = rose in rank
+    const color = shift >= 2 ? "#e07b39" : shift <= -2 ? "#5b8db8" : "#c8c8c8";
+    const sw    = Math.abs(shift) >= 4 ? 2.5 : 2;
+
+    g.append("line")
+      .attr("x1", 0).attr("y1", y1)
+      .attr("x2", iW).attr("y2", y2)
+      .attr("stroke", color).attr("stroke-width", sw).attr("opacity", 0.82);
+
+    [[0, y1], [iW, y2]].forEach(([cx, cy]) =>
+      g.append("circle")
+        .attr("cx", cx).attr("cy", cy).attr("r", 3.5)
+        .attr("fill", color).attr("opacity", 0.9)
+    );
+  });
+
+  // Left labels — ordered by 2014 rank
+  sorted14.forEach((s, i) => {
+    const y = yScale(i);
+    g.append("text")
+      .attr("x", -10).attr("y", y - 1).attr("dy", "0.35em")
+      .attr("text-anchor", "end")
+      .attr("font-size", 11.5).attr("fill", "#333")
+      .text(s.name);
+    g.append("text")
+      .attr("x", -10).attr("y", y + 12).attr("dy", "0.35em")
+      .attr("text-anchor", "end")
+      .attr("font-size", 9.5).attr("fill", "#c0c0c0")
+      .text(s.s2014 > 0 ? s.s2014.toFixed(1) + " pts" : "—");
+  });
+
+  // Right labels — ordered by 2026 rank
+  sorted26.forEach((s, i) => {
+    const y = yScale(i);
+    g.append("text")
+      .attr("x", iW + 10).attr("y", y - 1).attr("dy", "0.35em")
+      .attr("text-anchor", "start")
+      .attr("font-size", 11.5).attr("fill", "#333")
+      .text(s.name);
+    g.append("text")
+      .attr("x", iW + 10).attr("y", y + 12).attr("dy", "0.35em")
+      .attr("text-anchor", "start")
+      .attr("font-size", 9.5).attr("fill", "#c0c0c0")
+      .text(s.s2026 > 0 ? s.s2026.toFixed(1) + " pts" : "—");
+  });
+});
+</script>
 </body>
 </html>
