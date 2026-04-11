@@ -1,7 +1,7 @@
 {
   "year": 2018,
-  "source": "Interpolated (logistic curve between 2014 Broadsheet and 2026 OSM anchors)",
-  "methodology": "Hipster-relevant venue density per suburb; logistic interpolation; normalised 0\u2013100",
+  "source": "Logistic interpolation (no scraped data for this year)",
+  "methodology": "Logistic interpolation; normalised 0\u2013100",
   "suburbs": [
     {
       "name": "Melbourne",
@@ -74,7 +74,7 @@
       "trend": "stable"
     },
     {
-      "name": "Abbotsford",
+      "name": "Brunswick East",
       "score": 2.5,
       "trend": "stable"
     },
@@ -84,7 +84,7 @@
       "trend": "stable"
     },
     {
-      "name": "Brunswick East",
+      "name": "Abbotsford",
       "score": 2.5,
       "trend": "stable"
     },
@@ -94,12 +94,12 @@
       "trend": "stable"
     },
     {
-      "name": "Fitzroy North",
+      "name": "Thornbury",
       "score": 2.0,
       "trend": "stable"
     },
     {
-      "name": "Thornbury",
+      "name": "Fitzroy North",
       "score": 2.0,
       "trend": "stable"
     },
@@ -114,6 +114,16 @@
       "trend": "stable"
     },
     {
+      "name": "Moonee Ponds",
+      "score": 1.4,
+      "trend": "stable"
+    },
+    {
+      "name": "Glen Waverley",
+      "score": 1.4,
+      "trend": "stable"
+    },
+    {
       "name": "Albert Park",
       "score": 1.4,
       "trend": "stable"
@@ -124,17 +134,7 @@
       "trend": "stable"
     },
     {
-      "name": "Glen Waverley",
-      "score": 1.4,
-      "trend": "stable"
-    },
-    {
       "name": "Hawthorn",
-      "score": 1.4,
-      "trend": "stable"
-    },
-    {
-      "name": "Moonee Ponds",
       "score": 1.4,
       "trend": "stable"
     },
@@ -154,17 +154,17 @@
       "trend": "stable"
     },
     {
+      "name": "Footscray",
+      "score": 1.1,
+      "trend": "stable"
+    },
+    {
       "name": "Carlton North",
       "score": 1.1,
       "trend": "stable"
     },
     {
       "name": "Cheltenham",
-      "score": 1.1,
-      "trend": "stable"
-    },
-    {
-      "name": "Footscray",
       "score": 1.1,
       "trend": "stable"
     },
@@ -194,7 +194,7 @@
       "trend": "stable"
     },
     {
-      "name": "Parkville",
+      "name": "Ripponlea",
       "score": 0.3,
       "trend": "stable"
     },
@@ -204,17 +204,17 @@
       "trend": "stable"
     },
     {
-      "name": "Ripponlea",
+      "name": "Parkville",
       "score": 0.3,
       "trend": "stable"
     },
     {
-      "name": "Glen Iris",
+      "name": "Yarraville",
       "score": 0.2,
       "trend": "stable"
     },
     {
-      "name": "Yarraville",
+      "name": "Glen Iris",
       "score": 0.2,
       "trend": "stable"
     }

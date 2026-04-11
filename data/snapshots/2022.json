@@ -1,7 +1,7 @@
 {
   "year": 2022,
-  "source": "Interpolated (post-COVID recovery trajectory)",
-  "methodology": "Hipster-relevant venue density per suburb; logistic interpolation; normalised 0\u2013100",
+  "source": "Logistic interpolation (no scraped data for this year)",
+  "methodology": "Logistic interpolation; normalised 0\u2013100",
   "suburbs": [
     {
       "name": "Melbourne",
@@ -34,12 +34,12 @@
       "trend": "stable"
     },
     {
-      "name": "Northcote",
+      "name": "Richmond",
       "score": 4.3,
       "trend": "stable"
     },
     {
-      "name": "Richmond",
+      "name": "Northcote",
       "score": 4.3,
       "trend": "stable"
     },
@@ -64,12 +64,12 @@
       "trend": "stable"
     },
     {
-      "name": "Footscray",
+      "name": "St Kilda",
       "score": 3.7,
       "trend": "stable"
     },
     {
-      "name": "St Kilda",
+      "name": "Footscray",
       "score": 3.7,
       "trend": "stable"
     },
@@ -89,12 +89,12 @@
       "trend": "rising"
     },
     {
-      "name": "Fitzroy North",
+      "name": "Prahran",
       "score": 3.2,
       "trend": "stable"
     },
     {
-      "name": "Prahran",
+      "name": "Fitzroy North",
       "score": 3.2,
       "trend": "stable"
     },
@@ -119,12 +119,12 @@
       "trend": "stable"
     },
     {
-      "name": "Glen Iris",
+      "name": "Malvern",
       "score": 2.5,
       "trend": "stable"
     },
     {
-      "name": "Malvern",
+      "name": "Glen Iris",
       "score": 2.5,
       "trend": "stable"
     },
@@ -134,22 +134,22 @@
       "trend": "stable"
     },
     {
-      "name": "South Melbourne",
-      "score": 1.9,
-      "trend": "stable"
-    },
-    {
       "name": "Windsor",
       "score": 1.9,
       "trend": "stable"
     },
     {
-      "name": "Elwood",
-      "score": 1.4,
+      "name": "South Melbourne",
+      "score": 1.9,
       "trend": "stable"
     },
     {
       "name": "North Melbourne",
+      "score": 1.4,
+      "trend": "stable"
+    },
+    {
+      "name": "Elwood",
       "score": 1.4,
       "trend": "stable"
     },
@@ -169,12 +169,7 @@
       "trend": "stable"
     },
     {
-      "name": "Albert Park",
-      "score": 0.0,
-      "trend": "stable"
-    },
-    {
-      "name": "Brighton",
+      "name": "South Yarra",
       "score": 0.0,
       "trend": "stable"
     },
@@ -185,6 +180,21 @@
     },
     {
       "name": "Cheltenham",
+      "score": 0.0,
+      "trend": "stable"
+    },
+    {
+      "name": "Pascoe Vale",
+      "score": 0.0,
+      "trend": "stable"
+    },
+    {
+      "name": "Albert Park",
+      "score": 0.0,
+      "trend": "stable"
+    },
+    {
+      "name": "Brighton",
       "score": 0.0,
       "trend": "stable"
     },
@@ -200,16 +210,6 @@
     },
     {
       "name": "Murumbeena",
-      "score": 0.0,
-      "trend": "stable"
-    },
-    {
-      "name": "Pascoe Vale",
-      "score": 0.0,
-      "trend": "stable"
-    },
-    {
-      "name": "South Yarra",
       "score": 0.0,
       "trend": "stable"
     },

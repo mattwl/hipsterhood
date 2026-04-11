@@ -105,20 +105,22 @@ def venues_to_year_scores(venues: list, target_year: int) -> dict:
         else:
             updated_year = None
 
-        # Determine weight
+        # Determine recency weight
         if updated_year is None:
-            # No date: count at quarter weight
             weight = 2.5
         elif updated_year == target_year:
-            weight = 12.0   # updated exactly this year: strong signal
+            weight = 12.0
         elif abs(updated_year - target_year) == 1:
-            weight = 8.0    # adjacent year
+            weight = 8.0
         elif abs(updated_year - target_year) == 2:
             weight = 5.0
         elif abs(updated_year - target_year) <= 4:
-            weight = 3.0    # within 4 years: weak signal
+            weight = 3.0
         else:
-            weight = 1.0    # older: minimal weight
+            weight = 1.0
+
+        # Apply venue-type multiplier if present (from hotlist)
+        weight *= v.get("type_weight", 1.0)
 
         scores[suburb] += weight
 
@@ -133,6 +135,59 @@ def normalise(scores: dict) -> dict:
     return {k: round(v / total * 100, 1) for k, v in scores.items()}
 
 
+# Hipster weight multiplier per venue type from the hotlist
+VENUE_TYPE_WEIGHTS = {
+    "cafe":       1.3,
+    "bar":        1.4,
+    "wine bar":   1.5,
+    "shop":       1.3,
+    "restaurant": 1.0,
+}
+
+MONTH_MAP = {
+    "january": 1, "february": 2, "march": 3, "april": 4,
+    "may": 5, "june": 6, "july": 7, "august": 8,
+    "september": 9, "october": 10, "november": 11, "december": 12,
+}
+
+def parse_hotlist_date(date_str: str) -> str | None:
+    """Convert 'DD Month YYYY' → 'YYYY' year string."""
+    if not date_str:
+        return None
+    parts = date_str.strip().split()
+    for part in parts:
+        if len(part) == 4 and part.isdigit():
+            return part
+    return None
+
+
+def load_hotlist() -> list:
+    """
+    Load broadsheet_melbourne_hotlist.json and convert to standard venue format.
+    Returns list of {suburb, updated, type_weight} dicts.
+    """
+    hotlist_path = RAW_DIR / "broadsheet_melbourne_hotlist.json"
+    if not hotlist_path.exists():
+        return []
+    with open(hotlist_path) as f:
+        raw = json.load(f)
+    venues = []
+    for v in raw:
+        suburb = normalise_suburb(v.get("suburb", ""))
+        if not suburb:
+            continue
+        updated = parse_hotlist_date(v.get("updatedDate", ""))
+        vtype = (v.get("type") or "").strip().lower()
+        type_weight = VENUE_TYPE_WEIGHTS.get(vtype, 1.0)
+        venues.append({
+            "suburb":      suburb,
+            "updated":     updated,
+            "type_weight": type_weight,
+        })
+    print(f"Loaded {len(venues)} venues from broadsheet_melbourne_hotlist.json")
+    return venues
+
+
 # ── Load raw data ─────────────────────────────────────────────────────────────
 
 def load_raw_venues() -> dict:
@@ -142,15 +197,23 @@ def load_raw_venues() -> dict:
     """
     data = {}
 
-    # Live file covers 2023–2026
+    # Hotlist (hand-curated current venues) — primary 2026 source
+    hotlist = load_hotlist()
+
+    # Live scraped file (may be empty if scrape was blocked)
+    live_venues = []
     live_path = RAW_DIR / "venues_live.json"
     if live_path.exists():
         with open(live_path) as f:
-            data["live"] = json.load(f)
-        print(f"Loaded {len(data['live'])} live venues")
-    else:
-        print("No live venues file found (run scrape_broadsheet.py first)")
-        data["live"] = []
+            raw_live = json.load(f)
+        if raw_live:
+            live_venues = raw_live
+            print(f"Loaded {len(live_venues)} live scraped venues")
+
+    # Merge: hotlist + any live scrape results
+    data["live"] = hotlist + live_venues
+    if not data["live"]:
+        print("No live venues found — will fall back to interpolated estimates")
 
     # Wayback files
     for p in sorted(RAW_DIR.glob("venues_wayback_*.json")):

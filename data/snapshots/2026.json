@@ -1,151 +1,101 @@
 {
   "year": 2026,
-  "source": "Curated weighted venue-density scores (hipster OSM tags per suburb, Apr 2026)",
-  "methodology": "Hipster-relevant venue density per suburb; logistic interpolation; normalised 0\u2013100",
+  "source": "Broadsheet Melbourne venue pages (scraped, suburb + Updated date)",
+  "methodology": "10\u201312 pts per venue Updated in this year, 8 pts \u00b11 year, 5 pts \u00b12 years, 3 pts \u00b14 years; normalised 0\u2013100",
   "suburbs": [
     {
       "name": "Melbourne",
-      "score": 6.2,
+      "score": 22.6,
       "trend": "falling"
     },
     {
-      "name": "Brunswick",
-      "score": 4.8,
-      "trend": "stable"
-    },
-    {
-      "name": "Cremorne",
-      "score": 4.8,
-      "trend": "stable"
-    },
-    {
-      "name": "Fitzroy",
-      "score": 4.6,
-      "trend": "stable"
-    },
-    {
-      "name": "Northcote",
-      "score": 4.5,
-      "trend": "stable"
-    },
-    {
       "name": "Collingwood",
-      "score": 4.4,
-      "trend": "stable"
-    },
-    {
-      "name": "Brunswick East",
-      "score": 4.2,
-      "trend": "stable"
-    },
-    {
-      "name": "Yarraville",
-      "score": 4.2,
-      "trend": "stable"
-    },
-    {
-      "name": "Abbotsford",
-      "score": 3.8,
-      "trend": "stable"
-    },
-    {
-      "name": "Richmond",
-      "score": 3.7,
-      "trend": "stable"
-    },
-    {
-      "name": "Thornbury",
-      "score": 3.5,
-      "trend": "stable"
-    },
-    {
-      "name": "Moonee Ponds",
-      "score": 3.4,
-      "trend": "stable"
-    },
-    {
-      "name": "North Melbourne",
-      "score": 3.2,
-      "trend": "stable"
-    },
-    {
-      "name": "Windsor",
-      "score": 3.2,
+      "score": 10.2,
       "trend": "stable"
     },
     {
       "name": "Carlton",
+      "score": 8.4,
+      "trend": "stable"
+    },
+    {
+      "name": "Carlton North",
+      "score": 5.8,
+      "trend": "stable"
+    },
+    {
+      "name": "Fitzroy",
+      "score": 4.8,
+      "trend": "stable"
+    },
+    {
+      "name": "Brunswick",
+      "score": 4.2,
+      "trend": "stable"
+    },
+    {
+      "name": "West Melbourne",
+      "score": 3.9,
+      "trend": "stable"
+    },
+    {
+      "name": "South Yarra",
+      "score": 3.6,
+      "trend": "stable"
+    },
+    {
+      "name": "Brunswick East",
+      "score": 3.6,
+      "trend": "stable"
+    },
+    {
+      "name": "St Kilda",
+      "score": 3.5,
+      "trend": "stable"
+    },
+    {
+      "name": "Richmond",
+      "score": 3.2,
+      "trend": "stable"
+    },
+    {
+      "name": "Abbotsford",
       "score": 3.1,
       "trend": "stable"
     },
     {
       "name": "Prahran",
-      "score": 3.1,
-      "trend": "stable"
-    },
-    {
-      "name": "Ripponlea",
-      "score": 3.1,
-      "trend": "stable"
-    },
-    {
-      "name": "South Melbourne",
-      "score": 3.1,
-      "trend": "stable"
-    },
-    {
-      "name": "Coburg",
-      "score": 3.0,
-      "trend": "stable"
-    },
-    {
-      "name": "Footscray",
-      "score": 2.9,
-      "trend": "stable"
-    },
-    {
-      "name": "Fitzroy North",
-      "score": 2.8,
-      "trend": "stable"
-    },
-    {
-      "name": "Balaclava",
       "score": 2.7,
       "trend": "stable"
     },
     {
-      "name": "Ascot Vale",
-      "score": 2.6,
-      "trend": "stable"
-    },
-    {
-      "name": "St Kilda",
+      "name": "North Melbourne",
       "score": 2.5,
       "trend": "stable"
     },
     {
-      "name": "Port Melbourne",
-      "score": 2.3,
+      "name": "Fitzroy North",
+      "score": 2.4,
       "trend": "stable"
     },
     {
-      "name": "Elwood",
-      "score": 1.9,
+      "name": "Glen Iris",
+      "score": 1.5,
       "trend": "stable"
     },
     {
-      "name": "Parkville",
-      "score": 1.9,
+      "name": "Hawthorn",
+      "score": 1.5,
       "trend": "stable"
     },
     {
-      "name": "Caulfield North",
-      "score": 1.7,
+      "name": "Armadale",
+      "score": 1.5,
       "trend": "stable"
     },
     {
-      "name": "Pascoe Vale South",
-      "score": 1.6,
+      "name": "South Melbourne",
+      "score": 1.4,
       "trend": "stable"
     },
     {
@@ -154,68 +104,58 @@
       "trend": "stable"
     },
     {
-      "name": "South Yarra",
-      "score": 1.4,
-      "trend": "stable"
-    },
-    {
-      "name": "Glen Iris",
-      "score": 1.2,
-      "trend": "stable"
-    },
-    {
-      "name": "Glen Waverley",
+      "name": "Cremorne",
       "score": 1.1,
       "trend": "stable"
     },
     {
-      "name": "Ringwood",
-      "score": 1.0,
+      "name": "Northcote",
+      "score": 1.1,
       "trend": "stable"
     },
     {
-      "name": "Albert Park",
-      "score": 0.0,
+      "name": "Preston",
+      "score": 1.1,
       "trend": "stable"
     },
     {
-      "name": "Brighton",
-      "score": 0.0,
+      "name": "Carnegie",
+      "score": 1.1,
       "trend": "stable"
     },
     {
-      "name": "Carlton North",
-      "score": 0.0,
+      "name": "Richmond East",
+      "score": 0.9,
       "trend": "stable"
     },
     {
-      "name": "Cheltenham",
-      "score": 0.0,
+      "name": "East Melbourne",
+      "score": 0.7,
       "trend": "stable"
     },
     {
-      "name": "Hawthorn",
-      "score": 0.0,
+      "name": "Reservoir",
+      "score": 0.6,
       "trend": "stable"
     },
     {
-      "name": "Moorabbin",
-      "score": 0.0,
+      "name": "Cockatoo",
+      "score": 0.4,
       "trend": "stable"
     },
     {
-      "name": "Murumbeena",
-      "score": 0.0,
+      "name": "Burwood",
+      "score": 0.4,
       "trend": "stable"
     },
     {
-      "name": "Pascoe Vale",
-      "score": 0.0,
+      "name": "Yarraville",
+      "score": 0.4,
       "trend": "stable"
     },
     {
-      "name": "Southbank",
-      "score": 0.0,
+      "name": "Birregurra",
+      "score": 0.4,
       "trend": "stable"
     }
   ]

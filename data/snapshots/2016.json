@@ -1,7 +1,7 @@
 {
   "year": 2016,
-  "source": "Interpolated (logistic curve between 2014 Broadsheet and 2026 OSM anchors)",
-  "methodology": "Hipster-relevant venue density per suburb; logistic interpolation; normalised 0\u2013100",
+  "source": "Logistic interpolation (no scraped data for this year)",
+  "methodology": "Logistic interpolation; normalised 0\u2013100",
   "suburbs": [
     {
       "name": "Melbourne",
@@ -39,12 +39,12 @@
       "trend": "stable"
     },
     {
-      "name": "Prahran",
+      "name": "Thornbury",
       "score": 3.6,
       "trend": "stable"
     },
     {
-      "name": "Thornbury",
+      "name": "Prahran",
       "score": 3.6,
       "trend": "stable"
     },
@@ -99,17 +99,17 @@
       "trend": "stable"
     },
     {
+      "name": "Glen Iris",
+      "score": 0.8,
+      "trend": "stable"
+    },
+    {
       "name": "Carlton North",
       "score": 0.8,
       "trend": "stable"
     },
     {
       "name": "Cheltenham",
-      "score": 0.8,
-      "trend": "stable"
-    },
-    {
-      "name": "Glen Iris",
       "score": 0.8,
       "trend": "stable"
     },
@@ -154,6 +154,41 @@
       "trend": "stable"
     },
     {
+      "name": "Northcote",
+      "score": 0.0,
+      "trend": "stable"
+    },
+    {
+      "name": "Footscray",
+      "score": 0.0,
+      "trend": "stable"
+    },
+    {
+      "name": "Ripponlea",
+      "score": 0.0,
+      "trend": "stable"
+    },
+    {
+      "name": "Moonee Ponds",
+      "score": 0.0,
+      "trend": "stable"
+    },
+    {
+      "name": "Port Melbourne",
+      "score": 0.0,
+      "trend": "stable"
+    },
+    {
+      "name": "Parkville",
+      "score": 0.0,
+      "trend": "stable"
+    },
+    {
+      "name": "Glen Waverley",
+      "score": 0.0,
+      "trend": "stable"
+    },
+    {
       "name": "Albert Park",
       "score": 0.0,
       "trend": "stable"
@@ -164,22 +199,7 @@
       "trend": "stable"
     },
     {
-      "name": "Footscray",
-      "score": 0.0,
-      "trend": "stable"
-    },
-    {
-      "name": "Glen Waverley",
-      "score": 0.0,
-      "trend": "stable"
-    },
-    {
       "name": "Hawthorn",
-      "score": 0.0,
-      "trend": "stable"
-    },
-    {
-      "name": "Moonee Ponds",
       "score": 0.0,
       "trend": "stable"
     },
@@ -190,26 +210,6 @@
     },
     {
       "name": "Murumbeena",
-      "score": 0.0,
-      "trend": "stable"
-    },
-    {
-      "name": "Northcote",
-      "score": 0.0,
-      "trend": "stable"
-    },
-    {
-      "name": "Parkville",
-      "score": 0.0,
-      "trend": "stable"
-    },
-    {
-      "name": "Port Melbourne",
-      "score": 0.0,
-      "trend": "stable"
-    },
-    {
-      "name": "Ripponlea",
       "score": 0.0,
       "trend": "stable"
     },

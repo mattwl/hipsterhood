@@ -17,27 +17,12 @@
         27.2,
         12.6,
         16.2,
-        13.0,
-        6.2
+        32.6,
+        22.6
       ],
-      "trend": "falling",
-      "color": "#e15759",
-      "type": "cbd"
-    },
-    {
-      "name": "Fitzroy",
-      "scores": [
-        6.5,
-        7.7,
-        8.2,
-        3.3,
-        4.7,
-        6.2,
-        4.6
-      ],
-      "trend": "falling",
-      "color": "#f28e2b",
-      "type": "suburb"
+      "trend": "stable",
+      "type": "cbd",
+      "color": "#e15759"
     },
     {
       "name": "Carlton",
@@ -47,12 +32,12 @@
         6.7,
         2.4,
         3.1,
-        3.8,
-        3.1
+        6.6,
+        8.4
       ],
-      "trend": "falling",
-      "color": "#76b7b2",
-      "type": "suburb"
+      "trend": "stable",
+      "type": "suburb",
+      "color": "#f28e2b"
     },
     {
       "name": "Collingwood",
@@ -62,12 +47,27 @@
         5.0,
         2.0,
         4.3,
-        3.3,
-        4.4
+        9.9,
+        10.2
       ],
-      "trend": "stable",
-      "color": "#59a14f",
-      "type": "suburb"
+      "trend": "rising",
+      "type": "suburb",
+      "color": "#76b7b2"
+    },
+    {
+      "name": "Fitzroy",
+      "scores": [
+        6.5,
+        7.7,
+        8.2,
+        3.3,
+        4.7,
+        5.2,
+        4.8
+      ],
+      "trend": "falling",
+      "type": "suburb",
+      "color": "#59a14f"
     },
     {
       "name": "Brunswick",
@@ -77,87 +77,12 @@
         5.2,
         2.3,
         4.0,
-        4.1,
-        4.8
+        2.5,
+        4.2
       ],
       "trend": "stable",
-      "color": "#edc948",
-      "type": "suburb"
-    },
-    {
-      "name": "Pascoe Vale South",
-      "scores": [
-        5.6,
-        5.4,
-        4.5,
-        3.0,
-        3.1,
-        2.0,
-        1.6
-      ],
-      "trend": "falling",
-      "color": "#b07aa1",
-      "type": "suburb"
-    },
-    {
-      "name": "Richmond",
-      "scores": [
-        3.7,
-        3.4,
-        2.7,
-        3.4,
-        4.3,
-        3.9,
-        3.7
-      ],
-      "trend": "stable",
-      "color": "#ff9da7",
-      "type": "suburb"
-    },
-    {
-      "name": "Windsor",
-      "scores": [
-        4.2,
-        4.6,
-        5.8,
-        1.3,
-        1.9,
-        2.9,
-        3.2
-      ],
-      "trend": "falling",
-      "color": "#9c755f",
-      "type": "suburb"
-    },
-    {
-      "name": "Thornbury",
-      "scores": [
-        3.2,
-        3.6,
-        2.0,
-        3.7,
-        3.1,
-        3.8,
-        3.5
-      ],
-      "trend": "stable",
-      "color": "#17becf",
-      "type": "suburb"
-    },
-    {
-      "name": "Cremorne",
-      "scores": [
-        0.5,
-        0.3,
-        0.8,
-        3.2,
-        6.4,
-        6.6,
-        4.8
-      ],
-      "trend": "rising",
-      "color": "#4e79a7",
-      "type": "suburb"
+      "type": "suburb",
+      "color": "#edc948"
     },
     {
       "name": "St Kilda",
@@ -168,71 +93,41 @@
         2.9,
         3.7,
         4.0,
-        2.5
-      ],
-      "trend": "falling",
-      "color": "#f1ce63",
-      "type": "suburb"
-    },
-    {
-      "name": "Brunswick East",
-      "scores": [
-        0.5,
-        0.5,
-        2.5,
-        3.3,
-        5.7,
-        5.5,
-        4.2
-      ],
-      "trend": "rising",
-      "color": "#d37295",
-      "type": "suburb"
-    },
-    {
-      "name": "Balaclava",
-      "scores": [
-        2.3,
-        2.6,
-        2.5,
-        2.7,
-        3.5,
-        3.9,
-        2.7
+        3.5
       ],
       "trend": "stable",
-      "color": "#a0cbe8",
-      "type": "suburb"
+      "type": "suburb",
+      "color": "#b07aa1"
     },
     {
-      "name": "South Melbourne",
+      "name": "Richmond",
       "scores": [
         3.7,
-        2.6,
-        3.6,
-        2.8,
+        3.4,
+        2.7,
+        3.4,
+        4.3,
         1.9,
-        2.4,
-        3.1
+        3.2
       ],
       "trend": "stable",
-      "color": "#86bcb6",
-      "type": "suburb"
+      "type": "suburb",
+      "color": "#ff9da7"
     },
     {
-      "name": "Abbotsford",
+      "name": "Pascoe Vale South",
       "scores": [
-        2.8,
-        1.4,
-        2.5,
-        1.4,
-        4.8,
-        2.8,
-        3.8
+        5.6,
+        5.4,
+        4.5,
+        3.0,
+        3.1,
+        0.0,
+        0.0
       ],
-      "trend": "stable",
-      "color": "#8cd17d",
-      "type": "suburb"
+      "trend": "falling",
+      "type": "suburb",
+      "color": "#9c755f"
     },
     {
       "name": "Prahran",
@@ -242,72 +137,12 @@
         3.2,
         1.4,
         3.2,
-        1.6,
-        3.1
+        3.2,
+        2.7
       ],
       "trend": "stable",
-      "color": "#499894",
-      "type": "suburb"
-    },
-    {
-      "name": "Northcote",
-      "scores": [
-        0.9,
-        0.0,
-        1.5,
-        1.8,
-        4.3,
-        4.8,
-        4.5
-      ],
-      "trend": "rising",
-      "color": "#e6845e",
-      "type": "suburb"
-    },
-    {
-      "name": "Yarraville",
-      "scores": [
-        0.5,
-        1.1,
-        0.2,
-        1.5,
-        3.9,
-        6.3,
-        4.2
-      ],
-      "trend": "rising",
-      "color": "#d4a6c8",
-      "type": "suburb"
-    },
-    {
-      "name": "Coburg",
-      "scores": [
-        0.5,
-        0.2,
-        2.6,
-        0.8,
-        4.1,
-        5.3,
-        3.0
-      ],
-      "trend": "rising",
-      "color": "#ffbe7d",
-      "type": "suburb"
-    },
-    {
-      "name": "North Melbourne",
-      "scores": [
-        2.3,
-        1.5,
-        3.4,
-        0.7,
-        1.4,
-        3.6,
-        3.2
-      ],
-      "trend": "stable",
-      "color": "#72b7b2",
-      "type": "suburb"
+      "type": "suburb",
+      "color": "#17becf"
     },
     {
       "name": "South Yarra",
@@ -317,207 +152,87 @@
         4.1,
         2.6,
         0.0,
-        1.0,
-        1.4
-      ],
-      "trend": "falling",
-      "color": "#c9d02c",
-      "type": "suburb"
-    },
-    {
-      "name": "Footscray",
-      "scores": [
-        0.0,
-        0.0,
-        1.1,
-        0.9,
-        3.7,
-        5.6,
-        2.9
+        2.1,
+        3.6
       ],
       "trend": "stable",
-      "color": "#a9c574",
-      "type": "suburb"
+      "type": "suburb",
+      "color": "#4e79a7"
     },
     {
-      "name": "Fitzroy North",
+      "name": "Abbotsford",
       "scores": [
-        0.0,
-        0.9,
-        2.0,
-        2.6,
-        3.2,
-        2.6,
-        2.8
-      ],
-      "trend": "stable",
-      "color": "#ffa15a",
-      "type": "suburb"
-    },
-    {
-      "name": "Ripponlea",
-      "scores": [
-        0.5,
-        0.0,
-        0.3,
-        2.5,
-        4.1,
         2.8,
+        1.4,
+        2.5,
+        1.4,
+        4.8,
+        2.5,
         3.1
       ],
-      "trend": "rising",
-      "color": "#19d3f3",
-      "type": "suburb"
+      "trend": "stable",
+      "type": "suburb",
+      "color": "#f1ce63"
     },
     {
-      "name": "Ascot Vale",
+      "name": "Brunswick East",
       "scores": [
-        0.9,
-        0.7,
-        1.8,
-        1.6,
+        0.5,
+        0.5,
+        2.5,
         3.3,
-        2.2,
-        2.6
-      ],
-      "trend": "rising",
-      "color": "#ff6692",
-      "type": "suburb"
-    },
-    {
-      "name": "Moonee Ponds",
-      "scores": [
-        0.0,
-        0.0,
-        1.4,
-        1.9,
-        2.6,
-        3.6,
-        3.4
+        5.7,
+        2.1,
+        3.6
       ],
       "trend": "stable",
-      "color": "#b6e880",
-      "type": "suburb"
+      "type": "suburb",
+      "color": "#d37295"
     },
     {
-      "name": "Port Melbourne",
+      "name": "Windsor",
       "scores": [
-        0.5,
-        0.0,
-        0.3,
-        0.7,
-        2.3,
         4.2,
-        2.3
-      ],
-      "trend": "rising",
-      "color": "#ff97ff",
-      "type": "suburb"
-    },
-    {
-      "name": "Caulfield North",
-      "scores": [
-        0.9,
-        1.8,
-        2.1,
-        1.2,
-        1.2,
-        1.2,
-        1.7
-      ],
-      "trend": "rising",
-      "color": "#fecb52",
-      "type": "suburb"
-    },
-    {
-      "name": "Elwood",
-      "scores": [
-        0.9,
-        0.1,
-        0.5,
-        2.3,
-        1.4,
-        1.6,
-        1.9
-      ],
-      "trend": "rising",
-      "color": "#c73f0a",
-      "type": "suburb"
-    },
-    {
-      "name": "Malvern",
-      "scores": [
-        0.9,
-        0.7,
-        0.5,
-        0.1,
-        2.5,
-        1.5,
-        1.4
-      ],
-      "trend": "rising",
-      "color": "#7da8a8",
-      "type": "suburb"
-    },
-    {
-      "name": "Parkville",
-      "scores": [
-        0.5,
+        4.6,
+        5.8,
+        1.3,
+        1.9,
         0.0,
-        0.3,
-        0.0,
-        3.3,
-        0.5,
-        1.9
-      ],
-      "trend": "rising",
-      "color": "#e15759",
-      "type": "suburb"
-    },
-    {
-      "name": "Glen Iris",
-      "scores": [
-        0.5,
-        0.8,
-        0.2,
-        0.3,
-        2.5,
-        0.9,
-        1.2
-      ],
-      "trend": "rising",
-      "color": "#f28e2b",
-      "type": "suburb"
-    },
-    {
-      "name": "Ringwood",
-      "scores": [
-        1.4,
-        0.2,
-        0.4,
-        2.4,
-        0.6,
-        0.2,
-        1.0
+        0.0
       ],
       "trend": "falling",
-      "color": "#76b7b2",
-      "type": "suburb"
+      "type": "suburb",
+      "color": "#a0cbe8"
     },
     {
-      "name": "Glen Waverley",
+      "name": "South Melbourne",
       "scores": [
-        0.5,
-        0.0,
-        1.4,
-        1.2,
-        0.9,
-        1.0,
-        1.1
+        3.7,
+        2.6,
+        3.6,
+        2.8,
+        1.9,
+        0.8,
+        1.4
       ],
-      "trend": "rising",
-      "color": "#59a14f",
-      "type": "suburb"
+      "trend": "falling",
+      "type": "suburb",
+      "color": "#86bcb6"
+    },
+    {
+      "name": "Thornbury",
+      "scores": [
+        3.2,
+        3.6,
+        2.0,
+        3.7,
+        3.1,
+        0.0,
+        0.0
+      ],
+      "trend": "falling",
+      "type": "suburb",
+      "color": "#8cd17d"
     },
     {
       "name": "Carlton North",
@@ -527,137 +242,207 @@
         1.1,
         0.8,
         0.0,
-        0.7,
+        4.7,
+        5.8
+      ],
+      "trend": "rising",
+      "type": "suburb",
+      "color": "#499894"
+    },
+    {
+      "name": "Balaclava",
+      "scores": [
+        2.3,
+        2.6,
+        2.5,
+        2.7,
+        3.5,
+        0.0,
         0.0
       ],
       "trend": "falling",
-      "color": "#edc948",
-      "type": "suburb"
+      "type": "suburb",
+      "color": "#e6845e"
     },
     {
-      "name": "Cheltenham",
+      "name": "North Melbourne",
+      "scores": [
+        2.3,
+        1.5,
+        3.4,
+        0.7,
+        1.4,
+        1.5,
+        2.5
+      ],
+      "trend": "stable",
+      "type": "suburb",
+      "color": "#d4a6c8"
+    },
+    {
+      "name": "Cremorne",
+      "scores": [
+        0.5,
+        0.3,
+        0.8,
+        3.2,
+        6.4,
+        0.6,
+        1.1
+      ],
+      "trend": "stable",
+      "type": "suburb",
+      "color": "#ffbe7d"
+    },
+    {
+      "name": "Fitzroy North",
+      "scores": [
+        0.0,
+        0.9,
+        2.0,
+        2.6,
+        3.2,
+        1.4,
+        2.4
+      ],
+      "trend": "stable",
+      "type": "suburb",
+      "color": "#c9d02c"
+    },
+    {
+      "name": "Northcote",
       "scores": [
         0.9,
-        0.8,
-        1.1,
-        0.8,
         0.0,
-        0.7,
-        0.0
+        1.5,
+        1.8,
+        4.3,
+        0.6,
+        1.1
       ],
-      "trend": "falling",
-      "color": "#b07aa1",
-      "type": "suburb"
+      "trend": "stable",
+      "type": "suburb",
+      "color": "#ffa15a"
     },
     {
-      "name": "Pascoe Vale",
+      "name": "Yarraville",
+      "scores": [
+        0.5,
+        1.1,
+        0.2,
+        1.5,
+        3.9,
+        1.5,
+        0.4
+      ],
+      "trend": "stable",
+      "type": "suburb",
+      "color": "#19d3f3"
+    },
+    {
+      "name": "Ascot Vale",
       "scores": [
         0.9,
-        0.8,
-        1.1,
-        0.8,
-        0.0,
         0.7,
+        1.8,
+        1.6,
+        3.3,
+        0.0,
         0.0
       ],
-      "trend": "falling",
-      "color": "#ff9da7",
-      "type": "suburb"
+      "trend": "stable",
+      "type": "suburb",
+      "color": "#ff6692"
     },
     {
-      "name": "Albert Park",
+      "name": "Coburg",
+      "scores": [
+        0.5,
+        0.2,
+        2.6,
+        0.8,
+        4.1,
+        0.0,
+        0.0
+      ],
+      "trend": "stable",
+      "type": "suburb",
+      "color": "#b6e880"
+    },
+    {
+      "name": "Ripponlea",
       "scores": [
         0.5,
         0.0,
-        1.4,
+        0.3,
+        2.5,
+        4.1,
+        0.0,
+        0.0
+      ],
+      "trend": "stable",
+      "type": "suburb",
+      "color": "#ff97ff"
+    },
+    {
+      "name": "West Melbourne",
+      "scores": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        2.3,
+        3.9
+      ],
+      "trend": "stable",
+      "type": "suburb",
+      "color": "#fecb52"
+    },
+    {
+      "name": "Footscray",
+      "scores": [
         0.0,
         0.0,
         1.1,
+        0.9,
+        3.7,
+        0.0,
         0.0
       ],
-      "trend": "falling",
-      "color": "#9c755f",
-      "type": "suburb"
+      "trend": "stable",
+      "type": "suburb",
+      "color": "#c73f0a"
     },
     {
-      "name": "Brighton",
+      "name": "Parkville",
       "scores": [
         0.5,
         0.0,
-        1.4,
+        0.3,
         0.0,
+        3.3,
         0.0,
-        1.1,
         0.0
       ],
-      "trend": "falling",
-      "color": "#17becf",
-      "type": "suburb"
-    },
-    {
-      "name": "Hawthorn",
-      "scores": [
-        0.5,
-        0.0,
-        1.4,
-        0.0,
-        0.0,
-        1.1,
-        0.0
-      ],
-      "trend": "falling",
-      "color": "#4e79a7",
-      "type": "suburb"
-    },
-    {
-      "name": "Moorabbin",
-      "scores": [
-        0.5,
-        0.0,
-        1.4,
-        0.0,
-        0.0,
-        1.1,
-        0.0
-      ],
-      "trend": "falling",
-      "color": "#f1ce63",
-      "type": "suburb"
-    },
-    {
-      "name": "Murumbeena",
-      "scores": [
-        0.5,
-        0.0,
-        1.4,
-        0.0,
-        0.0,
-        1.1,
-        0.0
-      ],
-      "trend": "falling",
-      "color": "#d37295",
-      "type": "suburb"
-    },
-    {
-      "name": "Southbank",
-      "scores": [
-        0.5,
-        0.0,
-        1.4,
-        0.0,
-        0.0,
-        1.1,
-        0.0
-      ],
-      "trend": "falling",
-      "color": "#a0cbe8",
-      "type": "suburb"
+      "trend": "stable",
+      "type": "suburb",
+      "color": "#7da8a8"
     }
   ],
   "sources": {
-    "2014": "Broadsheet Melbourne (Kimonolabs weekly scrapes, Jul\u2013Dec 2014)",
-    "2016-2024": "Logistic interpolation with suburb-specific gentrification trajectories",
-    "2026": "Curated weighted hipster venue counts (OSM-inspired, Apr 2026)"
+    "primary": "Broadsheet Melbourne (venue pages, suburb + Updated date)",
+    "scraped": [
+      2024,
+      2026
+    ],
+    "fallback": [
+      2014,
+      2016,
+      2018,
+      2020,
+      2022
+    ],
+    "method": "Venues weighted by recency of Broadsheet 'Updated' timestamp relative to each year; per-suburb scores normalised 0\u2013100 annually"
   }
 }

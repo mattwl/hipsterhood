@@ -1,7 +1,7 @@
 {
   "year": 2014,
-  "source": "Broadsheet Melbourne weekly scrapes (Kimonolabs, Jul\u2013Dec 2014)",
-  "methodology": "Hipster-relevant venue density per suburb; logistic interpolation; normalised 0\u2013100",
+  "source": "Logistic interpolation (no scraped data for this year)",
+  "methodology": "Logistic interpolation; normalised 0\u2013100",
   "suburbs": [
     {
       "name": "Melbourne",
@@ -49,7 +49,7 @@
       "trend": null
     },
     {
-      "name": "Prahran",
+      "name": "Thornbury",
       "score": 3.2,
       "trend": null
     },
@@ -59,7 +59,7 @@
       "trend": null
     },
     {
-      "name": "Thornbury",
+      "name": "Prahran",
       "score": 3.2,
       "trend": null
     },
@@ -89,22 +89,17 @@
       "trend": null
     },
     {
+      "name": "Northcote",
+      "score": 0.9,
+      "trend": null
+    },
+    {
       "name": "Ascot Vale",
       "score": 0.9,
       "trend": null
     },
     {
-      "name": "Carlton North",
-      "score": 0.9,
-      "trend": null
-    },
-    {
       "name": "Caulfield North",
-      "score": 0.9,
-      "trend": null
-    },
-    {
-      "name": "Cheltenham",
       "score": 0.9,
       "trend": null
     },
@@ -119,7 +114,12 @@
       "trend": null
     },
     {
-      "name": "Northcote",
+      "name": "Carlton North",
+      "score": 0.9,
+      "trend": null
+    },
+    {
+      "name": "Cheltenham",
       "score": 0.9,
       "trend": null
     },
@@ -129,12 +129,7 @@
       "trend": null
     },
     {
-      "name": "Albert Park",
-      "score": 0.5,
-      "trend": null
-    },
-    {
-      "name": "Brighton",
+      "name": "Cremorne",
       "score": 0.5,
       "trend": null
     },
@@ -144,12 +139,27 @@
       "trend": null
     },
     {
+      "name": "Yarraville",
+      "score": 0.5,
+      "trend": null
+    },
+    {
       "name": "Coburg",
       "score": 0.5,
       "trend": null
     },
     {
-      "name": "Cremorne",
+      "name": "Ripponlea",
+      "score": 0.5,
+      "trend": null
+    },
+    {
+      "name": "Port Melbourne",
+      "score": 0.5,
+      "trend": null
+    },
+    {
+      "name": "Parkville",
       "score": 0.5,
       "trend": null
     },
@@ -160,6 +170,16 @@
     },
     {
       "name": "Glen Waverley",
+      "score": 0.5,
+      "trend": null
+    },
+    {
+      "name": "Albert Park",
+      "score": 0.5,
+      "trend": null
+    },
+    {
+      "name": "Brighton",
       "score": 0.5,
       "trend": null
     },
@@ -179,37 +199,17 @@
       "trend": null
     },
     {
-      "name": "Parkville",
-      "score": 0.5,
-      "trend": null
-    },
-    {
-      "name": "Port Melbourne",
-      "score": 0.5,
-      "trend": null
-    },
-    {
-      "name": "Ripponlea",
-      "score": 0.5,
-      "trend": null
-    },
-    {
       "name": "Southbank",
       "score": 0.5,
       "trend": null
     },
     {
-      "name": "Yarraville",
-      "score": 0.5,
-      "trend": null
-    },
-    {
-      "name": "Fitzroy North",
+      "name": "Footscray",
       "score": 0.0,
       "trend": null
     },
     {
-      "name": "Footscray",
+      "name": "Fitzroy North",
       "score": 0.0,
       "trend": null
     },

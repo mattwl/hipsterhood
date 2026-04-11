@@ -1,57 +1,32 @@
 {
   "year": 2024,
-  "source": "Interpolated (approaching 2026 OSM anchor)",
-  "methodology": "Hipster-relevant venue density per suburb; logistic interpolation; normalised 0\u2013100",
+  "source": "Broadsheet Melbourne venue pages (scraped, suburb + Updated date)",
+  "methodology": "10\u201312 pts per venue Updated in this year, 8 pts \u00b11 year, 5 pts \u00b12 years, 3 pts \u00b14 years; normalised 0\u2013100",
   "suburbs": [
     {
       "name": "Melbourne",
-      "score": 13.0,
-      "trend": "falling"
+      "score": 32.6,
+      "trend": "rising"
     },
     {
-      "name": "Cremorne",
+      "name": "Collingwood",
+      "score": 9.9,
+      "trend": "rising"
+    },
+    {
+      "name": "Carlton",
       "score": 6.6,
-      "trend": "stable"
-    },
-    {
-      "name": "Yarraville",
-      "score": 6.3,
-      "trend": "stable"
+      "trend": "rising"
     },
     {
       "name": "Fitzroy",
-      "score": 6.2,
+      "score": 5.2,
       "trend": "stable"
     },
     {
-      "name": "Footscray",
-      "score": 5.6,
-      "trend": "stable"
-    },
-    {
-      "name": "Brunswick East",
-      "score": 5.5,
-      "trend": "stable"
-    },
-    {
-      "name": "Coburg",
-      "score": 5.3,
-      "trend": "stable"
-    },
-    {
-      "name": "Northcote",
-      "score": 4.8,
-      "trend": "stable"
-    },
-    {
-      "name": "Port Melbourne",
-      "score": 4.2,
-      "trend": "stable"
-    },
-    {
-      "name": "Brunswick",
-      "score": 4.1,
-      "trend": "stable"
+      "name": "Carlton North",
+      "score": 4.7,
+      "trend": "rising"
     },
     {
       "name": "St Kilda",
@@ -59,134 +34,84 @@
       "trend": "stable"
     },
     {
-      "name": "Balaclava",
-      "score": 3.9,
-      "trend": "stable"
-    },
-    {
-      "name": "Richmond",
-      "score": 3.9,
-      "trend": "stable"
-    },
-    {
-      "name": "Carlton",
-      "score": 3.8,
-      "trend": "stable"
-    },
-    {
-      "name": "Thornbury",
-      "score": 3.8,
-      "trend": "stable"
-    },
-    {
-      "name": "Moonee Ponds",
-      "score": 3.6,
-      "trend": "stable"
-    },
-    {
-      "name": "North Melbourne",
-      "score": 3.6,
-      "trend": "stable"
-    },
-    {
-      "name": "Collingwood",
-      "score": 3.3,
-      "trend": "stable"
-    },
-    {
-      "name": "Windsor",
-      "score": 2.9,
+      "name": "Prahran",
+      "score": 3.2,
       "trend": "stable"
     },
     {
       "name": "Abbotsford",
-      "score": 2.8,
+      "score": 2.5,
       "trend": "stable"
     },
     {
-      "name": "Ripponlea",
-      "score": 2.8,
+      "name": "Brunswick",
+      "score": 2.5,
       "trend": "stable"
     },
     {
-      "name": "Fitzroy North",
-      "score": 2.6,
+      "name": "West Melbourne",
+      "score": 2.3,
+      "trend": null
+    },
+    {
+      "name": "South Yarra",
+      "score": 2.1,
       "trend": "stable"
     },
     {
-      "name": "South Melbourne",
-      "score": 2.4,
+      "name": "Reservoir",
+      "score": 2.1,
+      "trend": null
+    },
+    {
+      "name": "Brunswick East",
+      "score": 2.1,
+      "trend": "falling"
+    },
+    {
+      "name": "Richmond",
+      "score": 1.9,
       "trend": "stable"
     },
     {
-      "name": "Ascot Vale",
-      "score": 2.2,
-      "trend": "stable"
-    },
-    {
-      "name": "Pascoe Vale South",
-      "score": 2.0,
-      "trend": "stable"
-    },
-    {
-      "name": "Elwood",
-      "score": 1.6,
-      "trend": "stable"
-    },
-    {
-      "name": "Prahran",
-      "score": 1.6,
-      "trend": "stable"
-    },
-    {
-      "name": "Malvern",
+      "name": "North Melbourne",
       "score": 1.5,
       "trend": "stable"
     },
     {
-      "name": "Caulfield North",
-      "score": 1.2,
+      "name": "Cockatoo",
+      "score": 1.5,
+      "trend": null
+    },
+    {
+      "name": "Burwood",
+      "score": 1.5,
+      "trend": null
+    },
+    {
+      "name": "Yarraville",
+      "score": 1.5,
       "trend": "stable"
     },
     {
-      "name": "Albert Park",
-      "score": 1.1,
+      "name": "Birregurra",
+      "score": 1.5,
+      "trend": null
+    },
+    {
+      "name": "Fitzroy North",
+      "score": 1.4,
       "trend": "stable"
     },
     {
-      "name": "Brighton",
-      "score": 1.1,
-      "trend": "stable"
+      "name": "Richmond East",
+      "score": 1.3,
+      "trend": null
     },
     {
-      "name": "Hawthorn",
-      "score": 1.1,
-      "trend": "stable"
-    },
-    {
-      "name": "Moorabbin",
-      "score": 1.1,
-      "trend": "stable"
-    },
-    {
-      "name": "Murumbeena",
-      "score": 1.1,
-      "trend": "stable"
-    },
-    {
-      "name": "Southbank",
-      "score": 1.1,
-      "trend": "stable"
-    },
-    {
-      "name": "Glen Waverley",
+      "name": "East Melbourne",
       "score": 1.0,
-      "trend": "stable"
-    },
-    {
-      "name": "South Yarra",
-      "score": 1.0,
-      "trend": "stable"
+      "trend": null
     },
     {
       "name": "Glen Iris",
@@ -194,29 +119,44 @@
       "trend": "stable"
     },
     {
-      "name": "Carlton North",
-      "score": 0.7,
+      "name": "Hawthorn",
+      "score": 0.9,
       "trend": "stable"
     },
     {
-      "name": "Cheltenham",
-      "score": 0.7,
+      "name": "Armadale",
+      "score": 0.9,
+      "trend": null
+    },
+    {
+      "name": "South Melbourne",
+      "score": 0.8,
       "trend": "stable"
     },
     {
-      "name": "Pascoe Vale",
-      "score": 0.7,
+      "name": "Malvern",
+      "score": 0.8,
       "trend": "stable"
     },
     {
-      "name": "Parkville",
-      "score": 0.5,
-      "trend": "stable"
+      "name": "Cremorne",
+      "score": 0.6,
+      "trend": "falling"
     },
     {
-      "name": "Ringwood",
-      "score": 0.2,
-      "trend": "stable"
+      "name": "Northcote",
+      "score": 0.6,
+      "trend": "falling"
+    },
+    {
+      "name": "Preston",
+      "score": 0.6,
+      "trend": null
+    },
+    {
+      "name": "Carnegie",
+      "score": 0.6,
+      "trend": null
     }
   ]
 }
