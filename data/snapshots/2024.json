@@ -51,7 +51,7 @@
     {
       "name": "West Melbourne",
       "score": 2.3,
-      "trend": null
+      "trend": "stable"
     },
     {
       "name": "South Yarra",
@@ -116,12 +116,12 @@
     {
       "name": "Glen Iris",
       "score": 0.9,
-      "trend": "stable"
+      "trend": null
     },
     {
       "name": "Hawthorn",
       "score": 0.9,
-      "trend": "stable"
+      "trend": null
     },
     {
       "name": "Armadale",
@@ -136,7 +136,7 @@
     {
       "name": "Malvern",
       "score": 0.8,
-      "trend": "stable"
+      "trend": null
     },
     {
       "name": "Cremorne",

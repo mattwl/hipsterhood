@@ -1,6 +1,6 @@
 {
   "year": 2014,
-  "source": "Logistic interpolation (no scraped data for this year)",
+  "source": "Broadsheet Melbourne via Kimonolabs weekly scrapes (Jul\u2013Dec 2014)",
   "methodology": "Logistic interpolation; normalised 0\u2013100",
   "suburbs": [
     {
@@ -34,22 +34,17 @@
       "trend": null
     },
     {
-      "name": "Richmond",
-      "score": 3.7,
-      "trend": null
-    },
-    {
       "name": "South Melbourne",
       "score": 3.7,
       "trend": null
     },
     {
-      "name": "Brunswick",
-      "score": 3.2,
+      "name": "Richmond",
+      "score": 3.7,
       "trend": null
     },
     {
-      "name": "Thornbury",
+      "name": "Brunswick",
       "score": 3.2,
       "trend": null
     },
@@ -64,12 +59,17 @@
       "trend": null
     },
     {
-      "name": "Abbotsford",
-      "score": 2.8,
+      "name": "Thornbury",
+      "score": 3.2,
       "trend": null
     },
     {
       "name": "South Yarra",
+      "score": 2.8,
+      "trend": null
+    },
+    {
+      "name": "Abbotsford",
       "score": 2.8,
       "trend": null
     },
@@ -89,17 +89,7 @@
       "trend": null
     },
     {
-      "name": "Northcote",
-      "score": 0.9,
-      "trend": null
-    },
-    {
-      "name": "Ascot Vale",
-      "score": 0.9,
-      "trend": null
-    },
-    {
-      "name": "Caulfield North",
+      "name": "Malvern",
       "score": 0.9,
       "trend": null
     },
@@ -109,12 +99,17 @@
       "trend": null
     },
     {
-      "name": "Malvern",
+      "name": "Ascot Vale",
       "score": 0.9,
       "trend": null
     },
     {
-      "name": "Carlton North",
+      "name": "Northcote",
+      "score": 0.9,
+      "trend": null
+    },
+    {
+      "name": "Caulfield North",
       "score": 0.9,
       "trend": null
     },
@@ -126,6 +121,46 @@
     {
       "name": "Pascoe Vale",
       "score": 0.9,
+      "trend": null
+    },
+    {
+      "name": "Carlton North",
+      "score": 0.9,
+      "trend": null
+    },
+    {
+      "name": "Ripponlea",
+      "score": 0.5,
+      "trend": null
+    },
+    {
+      "name": "Parkville",
+      "score": 0.5,
+      "trend": null
+    },
+    {
+      "name": "Coburg",
+      "score": 0.5,
+      "trend": null
+    },
+    {
+      "name": "Murumbeena",
+      "score": 0.5,
+      "trend": null
+    },
+    {
+      "name": "Port Melbourne",
+      "score": 0.5,
+      "trend": null
+    },
+    {
+      "name": "Moorabbin",
+      "score": 0.5,
+      "trend": null
+    },
+    {
+      "name": "Southbank",
+      "score": 0.5,
       "trend": null
     },
     {
@@ -144,42 +179,7 @@
       "trend": null
     },
     {
-      "name": "Coburg",
-      "score": 0.5,
-      "trend": null
-    },
-    {
-      "name": "Ripponlea",
-      "score": 0.5,
-      "trend": null
-    },
-    {
-      "name": "Port Melbourne",
-      "score": 0.5,
-      "trend": null
-    },
-    {
-      "name": "Parkville",
-      "score": 0.5,
-      "trend": null
-    },
-    {
-      "name": "Glen Iris",
-      "score": 0.5,
-      "trend": null
-    },
-    {
       "name": "Glen Waverley",
-      "score": 0.5,
-      "trend": null
-    },
-    {
-      "name": "Albert Park",
-      "score": 0.5,
-      "trend": null
-    },
-    {
-      "name": "Brighton",
       "score": 0.5,
       "trend": null
     },
@@ -189,33 +189,18 @@
       "trend": null
     },
     {
-      "name": "Moorabbin",
+      "name": "Brighton",
       "score": 0.5,
       "trend": null
     },
     {
-      "name": "Murumbeena",
+      "name": "Albert Park",
       "score": 0.5,
       "trend": null
     },
     {
-      "name": "Southbank",
+      "name": "Glen Iris",
       "score": 0.5,
-      "trend": null
-    },
-    {
-      "name": "Footscray",
-      "score": 0.0,
-      "trend": null
-    },
-    {
-      "name": "Fitzroy North",
-      "score": 0.0,
-      "trend": null
-    },
-    {
-      "name": "Moonee Ponds",
-      "score": 0.0,
       "trend": null
     }
   ]

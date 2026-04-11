@@ -114,26 +114,6 @@
       "trend": "stable"
     },
     {
-      "name": "Moonee Ponds",
-      "score": 2.6,
-      "trend": "stable"
-    },
-    {
-      "name": "Malvern",
-      "score": 2.5,
-      "trend": "stable"
-    },
-    {
-      "name": "Glen Iris",
-      "score": 2.5,
-      "trend": "stable"
-    },
-    {
-      "name": "Port Melbourne",
-      "score": 2.3,
-      "trend": "stable"
-    },
-    {
       "name": "Windsor",
       "score": 1.9,
       "trend": "stable"
@@ -149,26 +129,6 @@
       "trend": "stable"
     },
     {
-      "name": "Elwood",
-      "score": 1.4,
-      "trend": "stable"
-    },
-    {
-      "name": "Caulfield North",
-      "score": 1.2,
-      "trend": "stable"
-    },
-    {
-      "name": "Glen Waverley",
-      "score": 0.9,
-      "trend": "stable"
-    },
-    {
-      "name": "Ringwood",
-      "score": 0.6,
-      "trend": "stable"
-    },
-    {
       "name": "South Yarra",
       "score": 0.0,
       "trend": "stable"
@@ -179,42 +139,7 @@
       "trend": "stable"
     },
     {
-      "name": "Cheltenham",
-      "score": 0.0,
-      "trend": "stable"
-    },
-    {
-      "name": "Pascoe Vale",
-      "score": 0.0,
-      "trend": "stable"
-    },
-    {
-      "name": "Albert Park",
-      "score": 0.0,
-      "trend": "stable"
-    },
-    {
-      "name": "Brighton",
-      "score": 0.0,
-      "trend": "stable"
-    },
-    {
-      "name": "Hawthorn",
-      "score": 0.0,
-      "trend": "stable"
-    },
-    {
-      "name": "Moorabbin",
-      "score": 0.0,
-      "trend": "stable"
-    },
-    {
-      "name": "Murumbeena",
-      "score": 0.0,
-      "trend": "stable"
-    },
-    {
-      "name": "Southbank",
+      "name": "West Melbourne",
       "score": 0.0,
       "trend": "stable"
     }

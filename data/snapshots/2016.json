@@ -39,12 +39,12 @@
       "trend": "stable"
     },
     {
-      "name": "Thornbury",
+      "name": "Prahran",
       "score": 3.6,
       "trend": "stable"
     },
     {
-      "name": "Prahran",
+      "name": "Thornbury",
       "score": 3.6,
       "trend": "stable"
     },
@@ -59,23 +59,18 @@
       "trend": "stable"
     },
     {
-      "name": "Balaclava",
+      "name": "South Melbourne",
       "score": 2.6,
       "trend": "stable"
     },
     {
-      "name": "South Melbourne",
+      "name": "Balaclava",
       "score": 2.6,
       "trend": "stable"
     },
     {
       "name": "St Kilda",
       "score": 2.5,
-      "trend": "stable"
-    },
-    {
-      "name": "Caulfield North",
-      "score": 1.8,
       "trend": "stable"
     },
     {
@@ -96,12 +91,7 @@
     {
       "name": "Fitzroy North",
       "score": 0.9,
-      "trend": "stable"
-    },
-    {
-      "name": "Glen Iris",
-      "score": 0.8,
-      "trend": "stable"
+      "trend": null
     },
     {
       "name": "Carlton North",
@@ -109,22 +99,7 @@
       "trend": "stable"
     },
     {
-      "name": "Cheltenham",
-      "score": 0.8,
-      "trend": "stable"
-    },
-    {
-      "name": "Pascoe Vale",
-      "score": 0.8,
-      "trend": "stable"
-    },
-    {
       "name": "Ascot Vale",
-      "score": 0.7,
-      "trend": "stable"
-    },
-    {
-      "name": "Malvern",
       "score": 0.7,
       "trend": "stable"
     },
@@ -144,22 +119,7 @@
       "trend": "stable"
     },
     {
-      "name": "Ringwood",
-      "score": 0.2,
-      "trend": "stable"
-    },
-    {
-      "name": "Elwood",
-      "score": 0.1,
-      "trend": "stable"
-    },
-    {
       "name": "Northcote",
-      "score": 0.0,
-      "trend": "stable"
-    },
-    {
-      "name": "Footscray",
       "score": 0.0,
       "trend": "stable"
     },
@@ -169,52 +129,17 @@
       "trend": "stable"
     },
     {
-      "name": "Moonee Ponds",
+      "name": "West Melbourne",
       "score": 0.0,
-      "trend": "stable"
+      "trend": null
     },
     {
-      "name": "Port Melbourne",
+      "name": "Footscray",
       "score": 0.0,
-      "trend": "stable"
+      "trend": null
     },
     {
       "name": "Parkville",
-      "score": 0.0,
-      "trend": "stable"
-    },
-    {
-      "name": "Glen Waverley",
-      "score": 0.0,
-      "trend": "stable"
-    },
-    {
-      "name": "Albert Park",
-      "score": 0.0,
-      "trend": "stable"
-    },
-    {
-      "name": "Brighton",
-      "score": 0.0,
-      "trend": "stable"
-    },
-    {
-      "name": "Hawthorn",
-      "score": 0.0,
-      "trend": "stable"
-    },
-    {
-      "name": "Moorabbin",
-      "score": 0.0,
-      "trend": "stable"
-    },
-    {
-      "name": "Murumbeena",
-      "score": 0.0,
-      "trend": "stable"
-    },
-    {
-      "name": "Southbank",
       "score": 0.0,
       "trend": "stable"
     }

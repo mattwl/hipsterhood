@@ -74,28 +74,13 @@
       "trend": "falling"
     },
     {
-      "name": "Ringwood",
-      "score": 2.4,
-      "trend": "stable"
-    },
-    {
       "name": "Brunswick",
-      "score": 2.3,
-      "trend": "stable"
-    },
-    {
-      "name": "Elwood",
       "score": 2.3,
       "trend": "stable"
     },
     {
       "name": "Collingwood",
       "score": 2.0,
-      "trend": "stable"
-    },
-    {
-      "name": "Moonee Ponds",
-      "score": 1.9,
       "trend": "stable"
     },
     {
@@ -114,12 +99,12 @@
       "trend": "stable"
     },
     {
-      "name": "Abbotsford",
+      "name": "Prahran",
       "score": 1.4,
       "trend": "stable"
     },
     {
-      "name": "Prahran",
+      "name": "Abbotsford",
       "score": 1.4,
       "trend": "stable"
     },
@@ -129,23 +114,8 @@
       "trend": "falling"
     },
     {
-      "name": "Caulfield North",
-      "score": 1.2,
-      "trend": "stable"
-    },
-    {
-      "name": "Glen Waverley",
-      "score": 1.2,
-      "trend": "stable"
-    },
-    {
       "name": "Footscray",
       "score": 0.9,
-      "trend": "stable"
-    },
-    {
-      "name": "Coburg",
-      "score": 0.8,
       "trend": "stable"
     },
     {
@@ -154,12 +124,7 @@
       "trend": "stable"
     },
     {
-      "name": "Cheltenham",
-      "score": 0.8,
-      "trend": "stable"
-    },
-    {
-      "name": "Pascoe Vale",
+      "name": "Coburg",
       "score": 0.8,
       "trend": "stable"
     },
@@ -169,52 +134,12 @@
       "trend": "stable"
     },
     {
-      "name": "Port Melbourne",
-      "score": 0.7,
-      "trend": "stable"
-    },
-    {
-      "name": "Glen Iris",
-      "score": 0.3,
-      "trend": "stable"
-    },
-    {
-      "name": "Malvern",
-      "score": 0.1,
+      "name": "West Melbourne",
+      "score": 0.0,
       "trend": "stable"
     },
     {
       "name": "Parkville",
-      "score": 0.0,
-      "trend": "stable"
-    },
-    {
-      "name": "Albert Park",
-      "score": 0.0,
-      "trend": "stable"
-    },
-    {
-      "name": "Brighton",
-      "score": 0.0,
-      "trend": "stable"
-    },
-    {
-      "name": "Hawthorn",
-      "score": 0.0,
-      "trend": "stable"
-    },
-    {
-      "name": "Moorabbin",
-      "score": 0.0,
-      "trend": "stable"
-    },
-    {
-      "name": "Murumbeena",
-      "score": 0.0,
-      "trend": "stable"
-    },
-    {
-      "name": "Southbank",
       "score": 0.0,
       "trend": "stable"
     }

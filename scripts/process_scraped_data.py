@@ -228,6 +228,26 @@ def load_raw_venues() -> dict:
     return data
 
 
+def load_kimonolabs_2014() -> dict | None:
+    """
+    Load the real 2014 Kimonolabs snapshot if it exists and has real source data.
+    Returns {suburb: pool_normalised_score} or None.
+    """
+    snap_2014 = SNAP_DIR / "2014.json"
+    if not snap_2014.exists():
+        return None
+    with open(snap_2014) as f:
+        d = json.load(f)
+    if "Kimonolabs" not in d.get("source", ""):
+        return None
+    raw = {s["name"]: s["score"] for s in d.get("suburbs", [])}
+    # Re-pool-normalise (original scores are max-normalised to 100)
+    total = sum(raw.values()) or 1
+    normalised = {k: round(v / total * 100, 1) for k, v in raw.items()}
+    print(f"  Loaded real 2014 Kimonolabs data ({len(normalised)} suburbs)")
+    return normalised
+
+
 def load_existing_combined() -> dict | None:
     """Load existing combined.json as fallback for years without scraped data."""
     if COMBINED_OUT.exists():
@@ -238,11 +258,17 @@ def load_existing_combined() -> dict | None:
 
 # ── Build per-year scores ─────────────────────────────────────────────────────
 
-def build_scores_for_year(year: int, raw: dict, existing: dict | None) -> dict:
+def build_scores_for_year(year: int, raw: dict, existing: dict | None,
+                          kimonolabs_2014: dict | None = None) -> dict:
     """
     Return {suburb: normalised_score} for `year`, using real scraped data
     where available, falling back to existing interpolated data.
     """
+    # 2014: use real Kimonolabs data if available
+    if year == 2014 and kimonolabs_2014:
+        print(f"  Year 2014: {len(kimonolabs_2014)} suburbs from Kimonolabs scrapes (real data)")
+        return kimonolabs_2014, "kimonolabs_2014"
+
     venues_for_year = []
 
     # Live file covers 2023-2026
@@ -291,6 +317,7 @@ def build_scores_for_year(year: int, raw: dict, existing: dict | None) -> dict:
 def write_snapshots(all_scores: dict, sources: dict):
     """Write per-year snapshot JSON files."""
     source_descriptions = {
+        "kimonolabs_2014":   "Broadsheet Melbourne via Kimonolabs weekly scrapes (Jul–Dec 2014)",
         "broadsheet_scraped": "Broadsheet Melbourne venue pages (scraped, suburb + Updated date)",
         "interpolated_fallback": "Logistic interpolation (no scraped data for this year)",
         "no_data": "No data available",
@@ -397,12 +424,14 @@ def main():
         print("   Run  python3 scripts/scrape_broadsheet.py  first.")
         return
 
+    kimonolabs_2014 = load_kimonolabs_2014()
+
     print(f"\nBuilding scores for years: {YEARS}")
     all_scores = {}
     sources    = {}
 
     for year in YEARS:
-        scores, src = build_scores_for_year(year, raw, existing)
+        scores, src = build_scores_for_year(year, raw, existing, kimonolabs_2014)
         all_scores[year] = scores
         sources[year]    = src
 

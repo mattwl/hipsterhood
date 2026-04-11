@@ -74,6 +74,11 @@
       "trend": "stable"
     },
     {
+      "name": "Abbotsford",
+      "score": 2.5,
+      "trend": "stable"
+    },
+    {
       "name": "Brunswick East",
       "score": 2.5,
       "trend": "stable"
@@ -81,16 +86,6 @@
     {
       "name": "Balaclava",
       "score": 2.5,
-      "trend": "stable"
-    },
-    {
-      "name": "Abbotsford",
-      "score": 2.5,
-      "trend": "stable"
-    },
-    {
-      "name": "Caulfield North",
-      "score": 2.1,
       "trend": "stable"
     },
     {
@@ -114,62 +109,12 @@
       "trend": "stable"
     },
     {
-      "name": "Moonee Ponds",
-      "score": 1.4,
-      "trend": "stable"
-    },
-    {
-      "name": "Glen Waverley",
-      "score": 1.4,
-      "trend": "stable"
-    },
-    {
-      "name": "Albert Park",
-      "score": 1.4,
-      "trend": "stable"
-    },
-    {
-      "name": "Brighton",
-      "score": 1.4,
-      "trend": "stable"
-    },
-    {
-      "name": "Hawthorn",
-      "score": 1.4,
-      "trend": "stable"
-    },
-    {
-      "name": "Moorabbin",
-      "score": 1.4,
-      "trend": "stable"
-    },
-    {
-      "name": "Murumbeena",
-      "score": 1.4,
-      "trend": "stable"
-    },
-    {
-      "name": "Southbank",
-      "score": 1.4,
-      "trend": "stable"
-    },
-    {
-      "name": "Footscray",
-      "score": 1.1,
-      "trend": "stable"
-    },
-    {
       "name": "Carlton North",
       "score": 1.1,
       "trend": "stable"
     },
     {
-      "name": "Cheltenham",
-      "score": 1.1,
-      "trend": "stable"
-    },
-    {
-      "name": "Pascoe Vale",
+      "name": "Footscray",
       "score": 1.1,
       "trend": "stable"
     },
@@ -179,27 +124,7 @@
       "trend": "stable"
     },
     {
-      "name": "Elwood",
-      "score": 0.5,
-      "trend": "stable"
-    },
-    {
-      "name": "Malvern",
-      "score": 0.5,
-      "trend": "stable"
-    },
-    {
-      "name": "Ringwood",
-      "score": 0.4,
-      "trend": "stable"
-    },
-    {
       "name": "Ripponlea",
-      "score": 0.3,
-      "trend": "stable"
-    },
-    {
-      "name": "Port Melbourne",
       "score": 0.3,
       "trend": "stable"
     },
@@ -214,8 +139,8 @@
       "trend": "stable"
     },
     {
-      "name": "Glen Iris",
-      "score": 0.2,
+      "name": "West Melbourne",
+      "score": 0.0,
       "trend": "stable"
     }
   ]
