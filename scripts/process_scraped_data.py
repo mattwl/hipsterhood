@@ -126,11 +126,11 @@ def venues_to_year_scores(venues: list, target_year: int) -> dict:
 
 
 def normalise(scores: dict) -> dict:
-    """Scale values to 0–100."""
+    """Distribute 100 points proportionally across suburbs (pool-based index)."""
     if not scores:
         return {}
-    mv = max(scores.values()) or 1
-    return {k: round(v / mv * 100, 1) for k, v in scores.items()}
+    total = sum(scores.values()) or 1
+    return {k: round(v / total * 100, 1) for k, v in scores.items()}
 
 
 # ── Load raw data ─────────────────────────────────────────────────────────────
