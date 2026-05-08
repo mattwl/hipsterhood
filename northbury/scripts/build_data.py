@@ -100,7 +100,6 @@ def fetch_sa1_boundaries():
                 sa2_code_field = next((k for k in sample_props if "SA2" in k.upper() and "CODE" in k.upper()), None)
                 sa2_name_field = next((k for k in sample_props if "SA2" in k.upper() and "NAME" in k.upper()), None)
                 sa1_code_field = next((k for k in sample_props if "SA1" in k.upper() and "CODE" in k.upper()), None)
-                # Filter to Thornbury/Northcote only, then normalise field names
                 filtered = []
                 for f in geojson["features"]:
                     p = f["properties"]
@@ -173,6 +172,8 @@ def _parse_rea_page(html: str, suburb: str) -> list:
     listings = []
     m = re.search(r'window\.__NEXT_DATA__\s*=\s*(\{.*?\})(?:\s*;|\s*</script>)', html, re.DOTALL)
     if not m:
+        title_m = re.search(r'<title>(.*?)</title>', html, re.I)
+        print(f"    [debug] no __NEXT_DATA__; page title: {title_m.group(1) if title_m else 'unknown'}")
         return _parse_jsonld(html, suburb)
     try:
         data = json.loads(m.group(1))
@@ -180,11 +181,14 @@ def _parse_rea_page(html: str, suburb: str) -> list:
         return _parse_jsonld(html, suburb)
 
     props = data.get("props", {}).get("pageProps", {})
+    print(f"    [debug] pageProps keys: {list(props.keys())[:12]}")
     results = (
         props.get("searchResults", {}).get("results", []) or
         props.get("listings", []) or
-        props.get("data", {}).get("results", [])
+        props.get("data", {}).get("results", []) or
+        props.get("resultsMap", {}).get("results", [])
     )
+    print(f"    [debug] results count before filter: {len(results)}")
     for item in results:
         listing = _extract_listing(item, suburb)
         if listing:
@@ -316,31 +320,62 @@ def fetch_vicmap_lot_sizes(sa1_geojson: dict) -> dict:
     sa1_gdf = gpd.GeoDataFrame.from_features(sa1_geojson["features"], crs="EPSG:4326")
     bbox = sa1_gdf.total_bounds
     minx, miny, maxx, maxy = bbox
+    bbox_str = f"{minx},{miny},{maxx},{maxy}"
     print("  Fetching Vicmap parcel data via ArcGIS REST …")
-    url = (
-        "https://services6.arcgis.com/GB33F62SbDxJjwEL/arcgis/rest/services/"
-        "Vicmap_Property/FeatureServer/6/query"
-    )
-    params = {
-        "where": "1=1",
-        "geometry": f"{minx},{miny},{maxx},{maxy}",
-        "geometryType": "esriGeometryEnvelope",
-        "spatialRel": "esriSpatialRelIntersects",
-        "inSR": "4326", "outSR": "4326",
-        "outFields": "PROPNUM,PARCEL_SFX,PROP_LGA_CODE",
-        "returnGeometry": "true",
-        "f": "geojson",
-        "resultRecordCount": 2000,
-    }
-    try:
-        r = requests.get(url, params=params, timeout=30)
-        r.raise_for_status()
-        parcels_geojson = r.json()
-        n_parcels = len(parcels_geojson.get("features", []))
-        print(f"  Got {n_parcels} parcel features")
-    except Exception as e:
-        print(f"  Vicmap REST fetch failed ({e}) — lot sizes will be empty")
+
+    # Try multiple candidate Vicmap parcel endpoints
+    candidates = [
+        "https://services6.arcgis.com/GB33F62SbDxJjwEL/arcgis/rest/services/Vicmap_Property/FeatureServer/0/query",
+        "https://services6.arcgis.com/GB33F62SbDxJjwEL/arcgis/rest/services/Vicmap_Property/FeatureServer/1/query",
+        "https://services6.arcgis.com/GB33F62SbDxJjwEL/arcgis/rest/services/Vicmap_Property/FeatureServer/2/query",
+        "https://services6.arcgis.com/GB33F62SbDxJjwEL/arcgis/rest/services/Vicmap_Property/FeatureServer/3/query",
+    ]
+    parcels_geojson = None
+    for url in candidates:
+        try:
+            r = requests.get(url, params={
+                "where": "1=1",
+                "geometry": bbox_str,
+                "geometryType": "esriGeometryEnvelope",
+                "spatialRel": "esriSpatialRelIntersects",
+                "inSR": "4326", "outSR": "4326",
+                "outFields": "*",
+                "returnGeometry": "true",
+                "f": "geojson",
+                "resultRecordCount": 10,
+            }, timeout=30)
+            if r.status_code != 200:
+                print(f"    {url.split('/')[-2]}: HTTP {r.status_code}")
+                continue
+            j = r.json()
+            feats = j.get("features", [])
+            if feats:
+                sample = feats[0].get("properties", {})
+                print(f"    Found parcel layer at {url.split('/')[-2]}: fields={list(sample.keys())[:8]}")
+                r2 = requests.get(url, params={
+                    "where": "1=1",
+                    "geometry": bbox_str,
+                    "geometryType": "esriGeometryEnvelope",
+                    "spatialRel": "esriSpatialRelIntersects",
+                    "inSR": "4326", "outSR": "4326",
+                    "outFields": "*",
+                    "returnGeometry": "true",
+                    "f": "geojson",
+                    "resultRecordCount": 2000,
+                }, timeout=60)
+                parcels_geojson = r2.json()
+                break
+            else:
+                print(f"    {url.split('/')[-2]}: 0 features")
+        except Exception as e:
+            print(f"    {url.split('/')[-2]}: error {e}")
+
+    if not parcels_geojson:
+        print("  No Vicmap parcel layer found — lot sizes will be empty")
         return {}
+
+    n_parcels = len(parcels_geojson.get("features", []))
+    print(f"  Got {n_parcels} parcel features")
     if n_parcels == 0:
         return {}
     parcels_gdf = gpd.GeoDataFrame.from_features(parcels_geojson["features"], crs="EPSG:4326")
