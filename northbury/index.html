@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Thornbury + Northcote — Property Map</title>
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- chroma.js (colour scales only, 18 KB) -->
+  <script src="https://unpkg.com/chroma-js@2.4.2/chroma.min.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f5f5f5;
+      color: #222;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: #fff;
+      border-bottom: 1px solid #e0e0e0;
+      padding: 0.7rem 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      flex-shrink: 0;
+      flex-wrap: wrap;
+    }
+
+    header h1 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #222;
+      white-space: nowrap;
+    }
+
+    /* ── Layer toggle ── */
+    .layer-toggle {
+      display: flex;
+      gap: 6px;
+    }
+
+    .layer-btn {
+      padding: 5px 14px;
+      border: 1.5px solid #ccc;
+      border-radius: 20px;
+      background: #fff;
+      font-size: 0.8rem;
+      cursor: pointer;
+      color: #555;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+
+    .layer-btn:hover { border-color: #999; color: #222; }
+
+    .layer-btn.active {
+      background: #222;
+      border-color: #222;
+      color: #fff;
+    }
+
+    /* ── Map ── */
+    #map {
+      flex: 1;
+      min-height: 0;
+    }
+
+    /* ── Legend (Leaflet custom control) ── */
+    .legend-control {
+      background: #fff;
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-size: 11px;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.18);
+      min-width: 160px;
+    }
+
+    .legend-title {
+      font-weight: 600;
+      font-size: 11px;
+      margin-bottom: 6px;
+      color: #333;
+    }
+
+    .legend-gradient {
+      height: 10px;
+      border-radius: 3px;
+      margin: 4px 0;
+    }
+
+    .legend-labels {
+      display: flex;
+      justify-content: space-between;
+      color: #888;
+      font-size: 10px;
+    }
+
+    .legend-note {
+      color: #aaa;
+      font-size: 9.5px;
+      margin-top: 6px;
+      line-height: 1.4;
+    }
+
+    .legend-no-data {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin-top: 5px;
+      color: #aaa;
+      font-size: 10px;
+    }
+
+    .legend-no-data-swatch {
+      width: 14px;
+      height: 10px;
+      background: #d8d8d8;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    /* ── Tooltip ── */
+    .sa1-tooltip {
+      font-size: 12px;
+      line-height: 1.6;
+      min-width: 160px;
+    }
+
+    .sa1-tooltip strong {
+      display: block;
+      font-size: 13px;
+      margin-bottom: 2px;
+    }
+
+    .sa1-tooltip .tt-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .sa1-tooltip .tt-label { color: #888; }
+    .sa1-tooltip .tt-val   { font-weight: 600; }
+    .sa1-tooltip .tt-na    { color: #bbb; font-style: italic; }
+
+    /* ── No-data banner ── */
+    #no-data-banner {
+      display: none;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(255,255,255,0.95);
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 1.5rem 2rem;
+      text-align: center;
+      z-index: 1000;
+      max-width: 340px;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.12);
+    }
+
+    #no-data-banner h2 { font-size: 1rem; margin-bottom: 0.5rem; }
+    #no-data-banner p  { font-size: 0.82rem; color: #666; line-height: 1.5; }
+    #no-data-banner code {
+      display: block;
+      background: #f5f5f5;
+      padding: 0.4rem 0.6rem;
+      border-radius: 4px;
+      font-size: 0.78rem;
+      margin-top: 0.5rem;
+      text-align: left;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Thornbury + Northcote</h1>
+    <div class="layer-toggle" id="layer-toggle"></div>
+  </header>
+
+  <div style="position:relative; flex:1; min-height:0;">
+    <div id="map"></div>
+    <div id="no-data-banner">
+      <h2>Data not yet generated</h2>
+      <p>Run the build script to fetch SA1 boundaries, property prices, and lot sizes:</p>
+      <code>pip install requests pandas geopandas shapely geopy playwright<br>
+python3 -m playwright install chromium<br>
+python3 northbury/scripts/build_data.py</code>
+    </div>
+  </div>
+
+  <script>
+  // ── Layer definitions ────────────────────────────────────────────────────────
+  // To add a new layer, add one entry here — nothing else needs to change.
+  const LAYERS = {
+    prices: {
+      label:  "House Prices",
+      field:  "median_price",
+      format: v => "$" + Math.round(v / 1000) + "k",
+      scale:  chroma.scale(["#fff3e0", "#fb8c00", "#bf360c"]).mode("lab"),
+      note:   "Median sold price — houses only, last 24 months\n(realestate.com.au, geocoded to SA1)",
+    },
+    lots: {
+      label:  "Lot Sizes",
+      field:  "median_lot_m2",
+      format: v => Math.round(v) + " m²",
+      scale:  chroma.scale(["#e3f2fd", "#1976d2", "#0d47a1"]).mode("lab"),
+      note:   "Median residential lot size — Vicmap parcel data",
+    },
+  };
+
+  let activeLayerId = "prices";
+  let sa1Layer      = null;
+  let geojsonData   = null;
+  let domainByLayer = {};
+
+  // ── Map setup ────────────────────────────────────────────────────────────────
+  const map = L.map("map", { zoomControl: true });
+
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a> contributors',
+    maxZoom: 19,
+  }).addTo(map);
+
+  // ── Legend control ───────────────────────────────────────────────────────────
+  const LegendControl = L.Control.extend({
+    onAdd() {
+      this._div = L.DomUtil.create("div", "legend-control");
+      return this._div;
+    },
+    update(layerId, domain) {
+      const layer = LAYERS[layerId];
+      const [lo, hi] = domain;
+      const steps = 6;
+      const gradientParts = Array.from({length: steps}, (_, i) => {
+        const t = i / (steps - 1);
+        return layer.scale(t).hex();
+      });
+      this._div.innerHTML = `
+        <div class="legend-title">${layer.label}</div>
+        <div class="legend-gradient"
+             style="background: linear-gradient(to right, ${gradientParts.join(",")})"></div>
+        <div class="legend-labels">
+          <span>${layer.format(lo)}</span>
+          <span>${layer.format(hi)}</span>
+        </div>
+        <div class="legend-no-data">
+          <div class="legend-no-data-swatch"></div>No data
+        </div>
+        <div class="legend-note">${layer.note.replace(/\n/g, "<br>")}</div>
+      `;
+    }
+  });
+
+  const legend = new LegendControl({ position: "bottomright" });
+  legend.addTo(map);
+
+  // ── Layer toggle buttons ─────────────────────────────────────────────────────
+  const toggleEl = document.getElementById("layer-toggle");
+  Object.entries(LAYERS).forEach(([id, cfg]) => {
+    const btn = document.createElement("button");
+    btn.className = "layer-btn" + (id === activeLayerId ? " active" : "");
+    btn.textContent = cfg.label;
+    btn.onclick = () => switchLayer(id);
+    btn.dataset.layerId = id;
+    toggleEl.appendChild(btn);
+  });
+
+  function switchLayer(id) {
+    activeLayerId = id;
+    toggleEl.querySelectorAll(".layer-btn").forEach(b => {
+      b.classList.toggle("active", b.dataset.layerId === id);
+    });
+    if (sa1Layer && geojsonData) {
+      sa1Layer.setStyle(styleFeature);
+      legend.update(id, domainByLayer[id]);
+    }
+  }
+
+  // ── Choropleth styling ───────────────────────────────────────────────────────
+  function styleFeature(feature) {
+    const layer = LAYERS[activeLayerId];
+    const val   = feature.properties[layer.field];
+    const domain = domainByLayer[activeLayerId];
+    if (!val || !domain) return { fillColor: "#d8d8d8", fillOpacity: 0.6, color: "#fff", weight: 1 };
+    const t = (val - domain[0]) / (domain[1] - domain[0]);
+    return {
+      fillColor:   layer.scale(Math.max(0, Math.min(1, t))).hex(),
+      fillOpacity: 0.75,
+      color:       "#fff",
+      weight:      1.2,
+    };
+  }
+
+  // ── Tooltip ──────────────────────────────────────────────────────────────────
+  function fmt(val, formatter) {
+    return val != null ? `<span class="tt-val">${formatter(val)}</span>`
+                       : `<span class="tt-na">No data</span>`;
+  }
+
+  function bindEvents(feature, layer) {
+    const p = feature.properties;
+    const suburb = p.suburb || p.SA2_NAME_2021 || "";
+    const sa1    = p.SA1_CODE_2021 || "";
+
+    layer.on({
+      mouseover(e) {
+        e.target.setStyle({ weight: 2.5, color: "#333", fillOpacity: 0.88 });
+        e.target.bringToFront();
+
+        const content = `
+          <div class="sa1-tooltip">
+            <strong>${suburb}</strong>
+            <div class="tt-row">
+              <span class="tt-label">Median price</span>
+              ${fmt(p.median_price, v => "$" + Math.round(v/1000) + "k")}
+            </div>
+            ${p.sale_count ? `<div class="tt-row"><span class="tt-label">Sales (24mo)</span><span class="tt-val">${p.sale_count}</span></div>` : ""}
+            <div class="tt-row">
+              <span class="tt-label">Median lot</span>
+              ${fmt(p.median_lot_m2, v => Math.round(v) + " m²")}
+            </div>
+            ${p.lot_count ? `<div class="tt-row"><span class="tt-label">Parcels</span><span class="tt-val">${p.lot_count}</span></div>` : ""}
+            <div style="margin-top:4px;font-size:9.5px;color:#bbb">SA1 ${sa1}</div>
+          </div>`;
+        e.target.bindTooltip(content, {sticky: true, opacity: 1, className: ""}).openTooltip();
+      },
+      mouseout(e) {
+        sa1Layer.resetStyle(e.target);
+        e.target.closeTooltip();
+      },
+    });
+  }
+
+  // ── Compute domain (min/max) for each layer ──────────────────────────────────
+  function computeDomains(features) {
+    Object.keys(LAYERS).forEach(id => {
+      const field = LAYERS[id].field;
+      const vals  = features.map(f => f.properties[field]).filter(v => v != null && v > 0);
+      if (vals.length) {
+        vals.sort((a, b) => a - b);
+        const lo = vals[Math.floor(vals.length * 0.05)];
+        const hi = vals[Math.floor(vals.length * 0.95)] || vals[vals.length - 1];
+        domainByLayer[id] = [lo, hi];
+      } else {
+        domainByLayer[id] = [0, 1];
+      }
+    });
+  }
+
+  // ── Load data ────────────────────────────────────────────────────────────────
+  fetch("data/sa1.geojson")
+    .then(r => {
+      if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
+      return r.json();
+    })
+    .then(geojson => {
+      geojsonData = geojson;
+      const features = geojson.features || [];
+
+      const hasAnyData = features.some(f =>
+        f.properties.median_price != null || f.properties.median_lot_m2 != null
+      );
+
+      if (features.length === 0) {
+        document.getElementById("no-data-banner").style.display = "block";
+        return;
+      }
+
+      computeDomains(features);
+
+      sa1Layer = L.geoJSON(geojson, {
+        style:          styleFeature,
+        onEachFeature:  bindEvents,
+      }).addTo(map);
+
+      map.fitBounds(sa1Layer.getBounds(), { padding: [20, 20] });
+      legend.update(activeLayerId, domainByLayer[activeLayerId]);
+
+      if (!hasAnyData) {
+        document.getElementById("no-data-banner").style.display = "block";
+      }
+    })
+    .catch(() => {
+      map.setView([-37.768, 145.003], 14);
+      document.getElementById("no-data-banner").style.display = "block";
+    });
+  </script>
+
+</body>
+</html>
