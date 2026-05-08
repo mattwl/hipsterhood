@@ -97,17 +97,26 @@ def fetch_sa1_boundaries():
             n = len(geojson.get("features", []))
             print(f"  Got {n} SA1 features from bbox query")
             if n > 0:
-                # Normalise field names to SA1_CODE_2021 / SA2_CODE_2021
-                sa2_field = next((k for k in sample_props if "SA2" in k.upper() and "CODE" in k.upper()), None)
-                if sa2_field:
-                    for f in geojson["features"]:
-                        code = str(f["properties"].get(sa2_field, ""))
-                        f["properties"]["SA2_CODE_2021"] = code
-                        f["properties"]["SA2_NAME_2021"] = SA2_NAMES.get(code, "")
-                sa1_field = next((k for k in sample_props if "SA1" in k.upper() and "CODE" in k.upper()), None)
-                if sa1_field and sa1_field != "SA1_CODE_2021":
-                    for f in geojson["features"]:
-                        f["properties"]["SA1_CODE_2021"] = f["properties"].get(sa1_field, "")
+                sa2_code_field = next((k for k in sample_props if "SA2" in k.upper() and "CODE" in k.upper()), None)
+                sa2_name_field = next((k for k in sample_props if "SA2" in k.upper() and "NAME" in k.upper()), None)
+                sa1_code_field = next((k for k in sample_props if "SA1" in k.upper() and "CODE" in k.upper()), None)
+                # Filter to Thornbury/Northcote only, then normalise field names
+                filtered = []
+                for f in geojson["features"]:
+                    p = f["properties"]
+                    sa2_name = str(p.get(sa2_name_field, "")) if sa2_name_field else ""
+                    if not any(s in sa2_name for s in ("Thornbury", "Northcote")):
+                        continue
+                    if sa2_code_field:
+                        p["SA2_CODE_2021"] = str(p.get(sa2_code_field, ""))
+                    if sa2_name_field:
+                        p["SA2_NAME_2021"] = sa2_name
+                        p["suburb"] = sa2_name
+                    if sa1_code_field and sa1_code_field != "SA1_CODE_2021":
+                        p["SA1_CODE_2021"] = str(p.get(sa1_code_field, ""))
+                    filtered.append(f)
+                geojson["features"] = filtered
+                print(f"  Filtered to {len(filtered)} SA1s in Thornbury/Northcote")
                 return geojson
 
     sys.exit("No SA1 features found — ABS API may be down or bbox is wrong")
@@ -129,7 +138,7 @@ def scrape_rea_listings(suburb: str, postcode: str) -> list:
     print(f"  Scraping realestate.com.au for {suburb} (houses sold) …")
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
+        browser = p.chromium.launch(headless=False)
         ctx = browser.new_context(user_agent=(
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
             "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
@@ -313,6 +322,7 @@ def fetch_vicmap_lot_sizes(sa1_geojson: dict) -> dict:
         "Vicmap_Property/FeatureServer/6/query"
     )
     params = {
+        "where": "1=1",
         "geometry": f"{minx},{miny},{maxx},{maxy}",
         "geometryType": "esriGeometryEnvelope",
         "spatialRel": "esriSpatialRelIntersects",
