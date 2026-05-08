@@ -4,19 +4,23 @@ build_data.py
 =============
 Builds northbury/data/sa1.geojson with:
   - Real SA1 boundaries from ABS REST API (ASGS 2021)
-  - Median house sale price per SA1 (scraped from realestate.com.au, geocoded)
-  - Median lot size per SA1 (computed from Vicmap parcel polygons)
+  - Median house sale price per SA1 (loaded from raw_listings.json, geocoded)
+  - Median lot size per SA1 (from raw_listings.json land_m2 field, or Vicmap WFS)
 
 Run:
-  pip install requests pandas geopandas shapely geopy playwright
-  python3 -m playwright install chromium
+  pip install requests pandas geopandas shapely geopy
   python3 northbury/scripts/build_data.py
+
+House price data input:
+  Place northbury/data/raw_listings.json with format:
+  [{"address": "12 Smith St, Thornbury VIC 3071", "price": 1250000, "land_m2": 420}, ...]
+  Fields: address (required), price (required), land_m2 (optional), property_type (optional)
 """
 
 import json
-import time
 import re
 import sys
+import statistics
 from pathlib import Path
 from collections import defaultdict
 
@@ -26,22 +30,16 @@ SCRIPT_DIR = Path(__file__).parent
 OUT_DIR    = SCRIPT_DIR.parent / "data"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 OUT_FILE   = OUT_DIR / "sa1.geojson"
+RAW_FILE   = OUT_DIR / "raw_listings.json"
 
-# ABS SA2 codes for Thornbury and Northcote (ASGS Edition 3, 2021)
-SA2_CODES = ["206021112", "206021499", "206021500"]
 SA2_NAMES = {
     "206021112": "Thornbury",
     "206021499": "Northcote - East",
     "206021500": "Northcote - West",
 }
 
-SUBURB_TARGETS = [
-    {"suburb": "Thornbury", "postcode": "3071"},
-    {"suburb": "Northcote", "postcode": "3070"},
-]
 
-
-# ── Step 1: SA1 boundaries from ABS REST API ────────────────────────────────────────────
+# ── Step 1: SA1 boundaries from ABS REST API ──────────────────────────────────────────────
 
 def fetch_sa1_boundaries():
     print("Fetching SA1 boundaries from ABS REST API …")
@@ -58,7 +56,6 @@ def fetch_sa1_boundaries():
         for layer in ("0", "1", "2"):
             url = f"{base}/{layer}/query"
 
-            # Probe with bbox to see if layer has data and what fields exist
             probe = requests.get(url, params={
                 "where": "1=1",
                 "geometry": BBOX,
@@ -80,7 +77,6 @@ def fetch_sa1_boundaries():
             sample_props = features[0].get("properties", {})
             print(f"  Layer {base.split('/')[-1]}/{layer} has data. Fields: {list(sample_props.keys())}")
 
-            # Fetch all SA1s in the bbox
             r = requests.get(url, params={
                 "where": "1=1",
                 "geometry": BBOX,
@@ -94,183 +90,127 @@ def fetch_sa1_boundaries():
             }, timeout=30)
             r.raise_for_status()
             geojson = r.json()
+
+            # Filter to Thornbury / Northcote SA2s
+            sa2_name_field = next((k for k in sample_props if "SA2" in k.upper() and "NAME" in k.upper()), None)
+            if sa2_name_field:
+                before = len(geojson.get("features", []))
+                geojson["features"] = [
+                    f for f in geojson["features"]
+                    if any(s in str(f["properties"].get(sa2_name_field, ""))
+                           for s in ("Thornbury", "Northcote"))
+                ]
+                after = len(geojson["features"])
+                print(f"  Filtered {before} → {after} SA1s (Thornbury + Northcote only)")
+
             n = len(geojson.get("features", []))
-            print(f"  Got {n} SA1 features from bbox query")
-            if n > 0:
-                sa2_code_field = next((k for k in sample_props if "SA2" in k.upper() and "CODE" in k.upper()), None)
-                sa2_name_field = next((k for k in sample_props if "SA2" in k.upper() and "NAME" in k.upper()), None)
-                sa1_code_field = next((k for k in sample_props if "SA1" in k.upper() and "CODE" in k.upper()), None)
-                filtered = []
+            if n == 0:
+                continue
+
+            # Normalise SA1_CODE_2021 / SA2_CODE_2021 fields
+            sa2_code_field = next((k for k in sample_props if "SA2" in k.upper() and "CODE" in k.upper()), None)
+            if sa2_code_field:
                 for f in geojson["features"]:
-                    p = f["properties"]
-                    sa2_name = str(p.get(sa2_name_field, "")) if sa2_name_field else ""
-                    if not any(s in sa2_name for s in ("Thornbury", "Northcote")):
-                        continue
-                    if sa2_code_field:
-                        p["SA2_CODE_2021"] = str(p.get(sa2_code_field, ""))
-                    if sa2_name_field:
-                        p["SA2_NAME_2021"] = sa2_name
-                        p["suburb"] = sa2_name
-                    if sa1_code_field and sa1_code_field != "SA1_CODE_2021":
-                        p["SA1_CODE_2021"] = str(p.get(sa1_code_field, ""))
-                    filtered.append(f)
-                geojson["features"] = filtered
-                print(f"  Filtered to {len(filtered)} SA1s in Thornbury/Northcote")
-                return geojson
+                    code = str(f["properties"].get(sa2_code_field, ""))
+                    f["properties"]["SA2_CODE_2021"] = code
+                    if not f["properties"].get("SA2_NAME_2021"):
+                        f["properties"]["SA2_NAME_2021"] = SA2_NAMES.get(code, "")
+
+            sa1_code_field = next((k for k in sample_props if "SA1" in k.upper() and "CODE" in k.upper()), None)
+            if sa1_code_field and sa1_code_field != "SA1_CODE_2021":
+                for f in geojson["features"]:
+                    f["properties"]["SA1_CODE_2021"] = f["properties"].get(sa1_code_field, "")
+
+            print(f"  Using {n} SA1 features")
+            return geojson
 
     sys.exit("No SA1 features found — ABS API may be down or bbox is wrong")
 
 
-# ── Step 2: Scrape sold house listings from realestate.com.au ─────────────────
+# ── Step 2: Load listings from raw_listings.json ─────────────────────────────
 
-def scrape_rea_listings(suburb: str, postcode: str) -> list:
-    try:
-        from playwright.sync_api import sync_playwright
-    except ImportError:
-        print("  playwright not installed — skipping REA scrape")
+def load_raw_listings() -> list:
+    """
+    Load house sale listings from northbury/data/raw_listings.json.
+
+    Expected format (each item):
+      {
+        "address":       "12 Smith St, Thornbury VIC 3071",   # required
+        "price":         1250000,                              # required
+        "land_m2":       420,                                  # optional
+        "property_type": "house"                               # optional, filters out apartments/units
+      }
+
+    To generate this file, run your local REA scraper and save results there.
+    """
+    if not RAW_FILE.exists():
+        print(f"\n  raw_listings.json not found at {RAW_FILE}")
+        print("  → Run your local REA scraper and save results to northbury/data/raw_listings.json")
+        print("  → Format: [{\"address\": \"...\", \"price\": 1250000, \"land_m2\": 420}, ...]")
+        print("  Continuing without price/lot data.\n")
         return []
 
-    slug = f"{suburb.lower().replace(' ', '-')}-vic-{postcode}"
-    base_url = f"https://www.realestate.com.au/sold/property-house-in-{slug}/"
+    with open(RAW_FILE) as f:
+        raw = json.load(f)
 
-    listings = []
-    print(f"  Scraping realestate.com.au for {suburb} (houses sold) …")
+    valid = []
+    skipped = 0
+    for item in raw:
+        if not isinstance(item, dict):
+            skipped += 1
+            continue
 
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)
-        ctx = browser.new_context(user_agent=(
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-        ))
-        page = ctx.new_page()
+        # Filter property type
+        prop_type = (item.get("property_type") or item.get("type") or "house").lower()
+        if any(t in prop_type for t in ["apartment", "unit", "flat", "townhouse"]):
+            skipped += 1
+            continue
 
-        for page_num in range(1, 6):
-            url = base_url if page_num == 1 else f"{base_url}?page={page_num}"
-            try:
-                page.goto(url, wait_until="networkidle", timeout=30000)
-                time.sleep(2)
-            except Exception as e:
-                print(f"    Page {page_num}: load error ({e})")
-                break
+        # Validate price
+        price = item.get("price", 0)
+        if isinstance(price, str):
+            price = int(re.sub(r"[^\d]", "", price) or "0")
+        price = int(price) if price else 0
+        if price < 100_000 or price > 15_000_000:
+            skipped += 1
+            continue
 
-            content = page.content()
-            found_this_page = _parse_rea_page(content, suburb)
-            if not found_this_page:
-                print(f"    Page {page_num}: no listings found (end of results)")
-                break
+        # Validate address
+        addr = str(item.get("address", "")).strip()
+        if len(addr) < 5:
+            skipped += 1
+            continue
 
-            listings.extend(found_this_page)
-            print(f"    Page {page_num}: {len(found_this_page)} listings (total: {len(listings)})")
-            time.sleep(2)
-
-        browser.close()
-
-    return listings
-
-
-def _parse_rea_page(html: str, suburb: str) -> list:
-    listings = []
-    m = re.search(r'window\.__NEXT_DATA__\s*=\s*(\{.*?\})(?:\s*;|\s*</script>)', html, re.DOTALL)
-    if not m:
-        title_m = re.search(r'<title>(.*?)</title>', html, re.I)
-        print(f"    [debug] no __NEXT_DATA__; page title: {title_m.group(1) if title_m else 'unknown'}")
-        return _parse_jsonld(html, suburb)
-    try:
-        data = json.loads(m.group(1))
-    except json.JSONDecodeError:
-        return _parse_jsonld(html, suburb)
-
-    props = data.get("props", {}).get("pageProps", {})
-    print(f"    [debug] pageProps keys: {list(props.keys())[:12]}")
-    results = (
-        props.get("searchResults", {}).get("results", []) or
-        props.get("listings", []) or
-        props.get("data", {}).get("results", []) or
-        props.get("resultsMap", {}).get("results", [])
-    )
-    print(f"    [debug] results count before filter: {len(results)}")
-    for item in results:
-        listing = _extract_listing(item, suburb)
-        if listing:
-            listings.append(listing)
-    return listings
-
-
-def _parse_jsonld(html: str, suburb: str) -> list:
-    listings = []
-    for m in re.finditer(r'<script[^>]+type=["\']application/ld\+json["\'][^>]*>(.*?)</script>', html, re.DOTALL):
+        land_m2 = item.get("land_m2") or item.get("land_size")
         try:
-            data = json.loads(m.group(1))
-            items = data if isinstance(data, list) else [data]
-            for item in items:
-                listing = _extract_listing(item, suburb)
-                if listing:
-                    listings.append(listing)
-        except json.JSONDecodeError:
-            pass
-    return listings
+            land_m2 = float(land_m2) if land_m2 else None
+        except (TypeError, ValueError):
+            land_m2 = None
+
+        valid.append({"address": addr, "price": price, "land_m2": land_m2})
+
+    print(f"  Loaded {len(valid)} valid listings from raw_listings.json ({skipped} skipped)")
+    return valid
 
 
-def _extract_listing(item, suburb):
-    if not isinstance(item, dict):
-        return None
-    prop_type = (
-        item.get("propertyType") or
-        item.get("property", {}).get("propertyType") or
-        item.get("@type") or ""
-    ).lower()
-    if any(t in prop_type for t in ["apartment", "unit", "flat", "townhouse"]):
-        return None
-    price_raw = (
-        item.get("price") or item.get("soldPrice") or
-        item.get("priceDetails", {}).get("soldPrice") or
-        item.get("listing", {}).get("price") or 0
-    )
-    if isinstance(price_raw, str):
-        price_raw = re.sub(r"[^\d]", "", price_raw)
-        price_raw = int(price_raw) if price_raw else 0
-    price = int(price_raw) if price_raw else 0
-    if price < 100_000 or price > 15_000_000:
-        return None
-    addr = (
-        item.get("address") or
-        item.get("property", {}).get("address") or
-        item.get("listing", {}).get("propertyDetails", {}).get("displayableAddress") or {}
-    )
-    if isinstance(addr, dict):
-        street = addr.get("street") or addr.get("streetAddress") or ""
-        sub = addr.get("suburb") or addr.get("addressLocality") or suburb
-        state = addr.get("state") or addr.get("addressRegion") or "VIC"
-        address_str = f"{street}, {sub} {state}".strip(", ")
-    elif isinstance(addr, str):
-        address_str = addr
-    else:
-        return None
-    if not address_str or len(address_str) < 5:
-        return None
-    land_size = (
-        item.get("landSize") or
-        item.get("property", {}).get("landSize") or
-        item.get("propertyDetails", {}).get("landArea") or None
-    )
-    return {"address": address_str, "price": price, "land_m2": float(land_size) if land_size else None}
-
-
-# ── Step 3: Geocode addresses ───────────────────────────────────────────────────
+# ── Step 3: Geocode addresses ───────────────────────────────────────────────
 
 def geocode_listings(listings: list) -> list:
     try:
         from geopy.geocoders import Nominatim
         from geopy.extra.rate_limiter import RateLimiter
     except ImportError:
-        print("  geopy not installed — skipping geocoding")
+        print("  geopy not installed — skipping geocoding (pip install geopy)")
         return []
+
     geolocator = Nominatim(user_agent="northbury-map/1.0")
     geocode = RateLimiter(geolocator.geocode, min_delay_seconds=1.1)
     geocoded = []
-    print(f"  Geocoding {len(listings)} listings …")
+    print(f"  Geocoding {len(listings)} listings (1 req/sec) …")
     for i, listing in enumerate(listings):
-        query = listing["address"] + ", Melbourne, VIC, Australia"
+        query = listing["address"]
+        if "VIC" not in query.upper() and "VICTORIA" not in query.upper():
+            query += ", Melbourne, VIC, Australia"
         try:
             loc = geocode(query, exactly_one=True, timeout=10)
             if loc:
@@ -279,82 +219,118 @@ def geocode_listings(listings: list) -> list:
             pass
         if (i + 1) % 20 == 0:
             print(f"    {i+1}/{len(listings)} geocoded …")
+
     print(f"  Geocoded {len(geocoded)}/{len(listings)} listings")
     return geocoded
 
 
-# ── Step 4: Assign to SA1 ────────────────────────────────────────────────────────
+# ── Step 4: Assign to SA1, extract prices + lot sizes ────────────────────────
 
-def assign_to_sa1(listings_geocoded: list, sa1_geojson: dict) -> dict:
+def assign_to_sa1(listings_geocoded: list, sa1_geojson: dict) -> tuple:
+    """Returns (prices_by_sa1, lot_sizes_from_listings)."""
     try:
         import geopandas as gpd
         import pandas as pd
         from shapely.geometry import Point
     except ImportError:
-        print("  geopandas not installed — skipping SA1 assignment")
-        return {}
+        print("  geopandas not installed — skipping SA1 assignment (pip install geopandas)")
+        return {}, {}
+
     sa1_gdf = gpd.GeoDataFrame.from_features(sa1_geojson["features"], crs="EPSG:4326")
-    sa1_gdf = sa1_gdf.rename(columns={"SA1_CODE_2021": "sa1_code"})
+    # Normalise column name
+    sa1_code_col = next((c for c in sa1_gdf.columns if "SA1" in c.upper() and "CODE" in c.upper()), None)
+    if sa1_code_col and sa1_code_col != "sa1_code":
+        sa1_gdf = sa1_gdf.rename(columns={sa1_code_col: "sa1_code"})
+    elif "SA1_CODE_2021" in sa1_gdf.columns:
+        sa1_gdf = sa1_gdf.rename(columns={"SA1_CODE_2021": "sa1_code"})
+
     pts = gpd.GeoDataFrame(
         listings_geocoded,
         geometry=[Point(l["lng"], l["lat"]) for l in listings_geocoded],
-        crs="EPSG:4326"
+        crs="EPSG:4326",
     )
     joined = gpd.sjoin(pts, sa1_gdf[["sa1_code", "geometry"]], how="left", predicate="within")
+
     prices_by_sa1 = defaultdict(list)
+    lots_by_sa1   = defaultdict(list)
     for _, row in joined.iterrows():
-        if pd.notna(row.get("sa1_code")) and row["price"] > 0:
-            prices_by_sa1[str(row["sa1_code"])].append(row["price"])
-    return dict(prices_by_sa1)
+        code = str(row.get("sa1_code", ""))
+        if not code or code == "nan":
+            continue
+        if row["price"] > 0:
+            prices_by_sa1[code].append(row["price"])
+        lm2 = row.get("land_m2")
+        if lm2 and 50 < float(lm2) < 5000:
+            lots_by_sa1[code].append(float(lm2))
+
+    print(f"  SA1s with price data from listings: {len(prices_by_sa1)}")
+    print(f"  SA1s with lot size from listings:   {len(lots_by_sa1)}")
+    return dict(prices_by_sa1), dict(lots_by_sa1)
 
 
-# ── Step 5: Lot sizes from Vicmap ────────────────────────────────────────────────────
+# ── Step 5: Lot sizes from Vicmap (WFS then ArcGIS REST) ──────────────────────
 
 def fetch_vicmap_lot_sizes(sa1_geojson: dict) -> dict:
     try:
         import geopandas as gpd
         import pandas as pd
     except ImportError:
-        print("  geopandas not installed — skipping lot size computation")
+        print("  geopandas not installed — skipping Vicmap lot sizes")
         return {}
-    sa1_gdf = gpd.GeoDataFrame.from_features(sa1_geojson["features"], crs="EPSG:4326")
-    bbox = sa1_gdf.total_bounds
-    minx, miny, maxx, maxy = bbox
-    bbox_str = f"{minx},{miny},{maxx},{maxy}"
-    print("  Fetching Vicmap parcel data via ArcGIS REST …")
 
-    # Try multiple candidate Vicmap parcel endpoints
-    candidates = [
-        "https://services6.arcgis.com/GB33F62SbDxJjwEL/arcgis/rest/services/Vicmap_Property/FeatureServer/0/query",
-        "https://services6.arcgis.com/GB33F62SbDxJjwEL/arcgis/rest/services/Vicmap_Property/FeatureServer/1/query",
-        "https://services6.arcgis.com/GB33F62SbDxJjwEL/arcgis/rest/services/Vicmap_Property/FeatureServer/2/query",
-        "https://services6.arcgis.com/GB33F62SbDxJjwEL/arcgis/rest/services/Vicmap_Property/FeatureServer/3/query",
-    ]
+    sa1_gdf = gpd.GeoDataFrame.from_features(sa1_geojson["features"], crs="EPSG:4326")
+    minx, miny, maxx, maxy = sa1_gdf.total_bounds
+    bbox_wfs   = f"{minx},{miny},{maxx},{maxy},EPSG:4326"
+    bbox_esri  = f"{minx},{miny},{maxx},{maxy}"
+
+    print("  Fetching Vicmap parcel data …")
+
     parcels_geojson = None
-    for url in candidates:
+
+    # Victorian Government WFS candidates
+    wfs_candidates = [
+        ("https://opendata.maps.vic.gov.au/geoserver/ows", "PARCEL_SHP"),
+        ("https://opendata.maps.vic.gov.au/geoserver/ows", "vmpropertysmp:PARCEL_MP"),
+        ("https://opendata.maps.vic.gov.au/geoserver/ows", "vicmap_property:PARCEL_SHP"),
+        ("https://opendata.maps.vic.gov.au/geoserver/wfs", "PARCEL_SHP"),
+    ]
+    for wfs_url, type_name in wfs_candidates:
         try:
-            r = requests.get(url, params={
-                "where": "1=1",
-                "geometry": bbox_str,
-                "geometryType": "esriGeometryEnvelope",
-                "spatialRel": "esriSpatialRelIntersects",
-                "inSR": "4326", "outSR": "4326",
-                "outFields": "*",
-                "returnGeometry": "true",
-                "f": "geojson",
-                "resultRecordCount": 10,
+            r = requests.get(wfs_url, params={
+                "service": "WFS",
+                "version": "2.0.0",
+                "request": "GetFeature",
+                "typeName": type_name,
+                "outputFormat": "application/json",
+                "count": 3000,
+                "BBOX": bbox_wfs,
             }, timeout=30)
-            if r.status_code != 200:
-                print(f"    {url.split('/')[-2]}: HTTP {r.status_code}")
-                continue
-            j = r.json()
-            feats = j.get("features", [])
-            if feats:
-                sample = feats[0].get("properties", {})
-                print(f"    Found parcel layer at {url.split('/')[-2]}: fields={list(sample.keys())[:8]}")
-                r2 = requests.get(url, params={
-                    "where": "1=1",
-                    "geometry": bbox_str,
+            if r.status_code == 200:
+                data = r.json()
+                features = data.get("features", [])
+                if features:
+                    print(f"  WFS {type_name}: {len(features)} parcel features")
+                    parcels_geojson = data
+                    break
+                else:
+                    print(f"  WFS {type_name}: 0 features")
+            else:
+                print(f"  WFS {type_name}: HTTP {r.status_code}")
+        except Exception as e:
+            print(f"  WFS {type_name}: error ({e})")
+
+    # ArcGIS REST fallbacks
+    if not parcels_geojson:
+        arcgis_urls = [
+            "https://services6.arcgis.com/GB33F62SbDxJjwEL/arcgis/rest/services/Vicmap_Property/FeatureServer/0/query",
+            "https://services6.arcgis.com/GB33F62SbDxJjwEL/arcgis/rest/services/Vicmap_Property/FeatureServer/1/query",
+            "https://services6.arcgis.com/GB33F62SbDxJjwEL/arcgis/rest/services/Vicmap_Property/FeatureServer/2/query",
+            "https://services6.arcgis.com/GB33F62SbDxJjwEL/arcgis/rest/services/Vicmap_Property/FeatureServer/3/query",
+        ]
+        for url in arcgis_urls:
+            try:
+                r = requests.get(url, params={
+                    "geometry": bbox_esri,
                     "geometryType": "esriGeometryEnvelope",
                     "spatialRel": "esriSpatialRelIntersects",
                     "inSR": "4326", "outSR": "4326",
@@ -362,81 +338,132 @@ def fetch_vicmap_lot_sizes(sa1_geojson: dict) -> dict:
                     "returnGeometry": "true",
                     "f": "geojson",
                     "resultRecordCount": 2000,
-                }, timeout=60)
-                parcels_geojson = r2.json()
-                break
-            else:
-                print(f"    {url.split('/')[-2]}: 0 features")
-        except Exception as e:
-            print(f"    {url.split('/')[-2]}: error {e}")
+                }, timeout=30)
+                if r.status_code == 200:
+                    data = r.json()
+                    features = data.get("features", [])
+                    if features:
+                        layer = url.split("/")[-2]
+                        print(f"  ArcGIS layer {layer}: {len(features)} parcel features")
+                        parcels_geojson = data
+                        break
+                    else:
+                        print(f"  ArcGIS {url.split('/')[-2]}: 0 features")
+                else:
+                    print(f"  ArcGIS {url.split('/')[-2]}: HTTP {r.status_code}")
+            except Exception as e:
+                print(f"  ArcGIS error ({e})")
 
     if not parcels_geojson:
-        print("  No Vicmap parcel layer found — lot sizes will be empty")
+        print("  No Vicmap parcel data accessible — lot sizes from Vicmap unavailable")
         return {}
 
-    n_parcels = len(parcels_geojson.get("features", []))
-    print(f"  Got {n_parcels} parcel features")
-    if n_parcels == 0:
-        return {}
-    parcels_gdf = gpd.GeoDataFrame.from_features(parcels_geojson["features"], crs="EPSG:4326")
+    parcels_gdf  = gpd.GeoDataFrame.from_features(parcels_geojson["features"], crs="EPSG:4326")
     parcels_proj = parcels_gdf.to_crs("EPSG:7855")
     parcels_proj["area_m2"] = parcels_proj.geometry.area
     parcels_proj = parcels_proj[(parcels_proj["area_m2"] >= 50) & (parcels_proj["area_m2"] <= 5000)]
+
     sa1_proj = sa1_gdf.to_crs("EPSG:7855")
-    sa1_proj = sa1_proj.rename(columns={"SA1_CODE_2021": "sa1_code"})
-    joined = gpd.sjoin(parcels_proj[["area_m2", "geometry"]], sa1_proj[["sa1_code", "geometry"]], how="left", predicate="within")
+    sa1_code_col = next((c for c in sa1_proj.columns if "SA1" in c.upper() and "CODE" in c.upper()), "SA1_CODE_2021")
+    sa1_proj = sa1_proj.rename(columns={sa1_code_col: "sa1_code"})
+
+    joined = gpd.sjoin(
+        parcels_proj[["area_m2", "geometry"]],
+        sa1_proj[["sa1_code", "geometry"]],
+        how="left",
+        predicate="within",
+    )
     lot_sizes = {}
     for sa1_code, group in joined.groupby("sa1_code"):
         lot_sizes[str(sa1_code)] = {"median_m2": round(group["area_m2"].median(), 1), "count": len(group)}
-    print(f"  Computed lot sizes for {len(lot_sizes)} SA1s")
+
+    print(f"  Computed lot sizes for {len(lot_sizes)} SA1s from Vicmap")
     return lot_sizes
 
 
-# ── Step 6: Merge and write ────────────────────────────────────────────────────────────────
+# ── Step 6: Merge and write ────────────────────────────────────────────────────────
 
-def merge_and_write(sa1_geojson: dict, prices_by_sa1: dict, lot_sizes: dict):
-    import statistics
+def merge_and_write(
+    sa1_geojson: dict,
+    prices_by_sa1: dict,
+    vicmap_lot_sizes: dict,
+    listing_lot_sizes: dict,
+):
     median_prices = {}
     for sa1_code, prices in prices_by_sa1.items():
         if prices:
-            median_prices[sa1_code] = {"median_price": int(statistics.median(prices)), "sale_count": len(prices)}
+            median_prices[sa1_code] = {
+                "median_price": int(statistics.median(prices)),
+                "sale_count": len(prices),
+            }
+
+    # Prefer Vicmap lot sizes; fall back to listing-derived
+    effective_lots = {}
+    for sa1_code in set(list(vicmap_lot_sizes.keys()) + list(listing_lot_sizes.keys())):
+        if sa1_code in vicmap_lot_sizes:
+            effective_lots[sa1_code] = vicmap_lot_sizes[sa1_code]
+        elif sa1_code in listing_lot_sizes:
+            sizes = listing_lot_sizes[sa1_code]
+            effective_lots[sa1_code] = {
+                "median_m2": round(statistics.median(sizes), 1),
+                "count": len(sizes),
+            }
+
     for feature in sa1_geojson["features"]:
         props = feature["properties"]
         sa1_code = str(props.get("SA1_CODE_2021", ""))
         sa2_code = str(props.get("SA2_CODE_2021", ""))
+
         price_info = median_prices.get(sa1_code, {})
-        props["median_price"] = price_info.get("median_price", None)
-        props["sale_count"]   = price_info.get("sale_count", 0)
-        props["price_period"] = "Last 24 months"
-        lot_info = lot_sizes.get(sa1_code, {})
+        props["median_price"]  = price_info.get("median_price", None)
+        props["sale_count"]    = price_info.get("sale_count", 0)
+        props["price_period"]  = "Last 24 months"
+
+        lot_info = effective_lots.get(sa1_code, {})
         props["median_lot_m2"] = lot_info.get("median_m2", None)
         props["lot_count"]     = lot_info.get("count", 0)
+
         props["suburb"] = SA2_NAMES.get(sa2_code, props.get("SA2_NAME_2021", ""))
+
     with open(OUT_FILE, "w") as f:
         json.dump(sa1_geojson, f)
+
+    n_price = sum(1 for f in sa1_geojson["features"] if f["properties"]["median_price"])
+    n_lots  = sum(1 for f in sa1_geojson["features"] if f["properties"]["median_lot_m2"])
+
     print(f"\nWritten: {OUT_FILE}")
     print(f"  Features:   {len(sa1_geojson['features'])}")
-    print(f"  With price: {sum(1 for f in sa1_geojson['features'] if f['properties']['median_price'])}")
-    print(f"  With lots:  {sum(1 for f in sa1_geojson['features'] if f['properties']['median_lot_m2'])}")
+    print(f"  With price: {n_price}")
+    print(f"  With lots:  {n_lots}")
 
 
-# ── Main ────────────────────────────────────────────────────────────────────────────────
+# ── Main ──────────────────────────────────────────────────────────────────────────────────
 
 def main():
     print("=" * 60)
     print("Building northbury/data/sa1.geojson")
     print("=" * 60)
+
     sa1_geojson = fetch_sa1_boundaries()
-    all_listings = []
-    for target in SUBURB_TARGETS:
-        raw = scrape_rea_listings(target["suburb"], target["postcode"])
-        all_listings.extend(raw)
-    print(f"\nTotal listings scraped: {len(all_listings)}")
-    geocoded = geocode_listings(all_listings) if all_listings else []
-    prices_by_sa1 = assign_to_sa1(geocoded, sa1_geojson) if geocoded else {}
-    print(f"SA1s with price data: {len(prices_by_sa1)}")
-    lot_sizes = fetch_vicmap_lot_sizes(sa1_geojson)
-    merge_and_write(sa1_geojson, prices_by_sa1, lot_sizes)
+
+    print("\nLoading house listings …")
+    listings = load_raw_listings()
+
+    geocoded = []
+    prices_by_sa1 = {}
+    listing_lot_sizes = {}
+
+    if listings:
+        geocoded = geocode_listings(listings)
+        if geocoded:
+            prices_by_sa1, listing_lot_sizes = assign_to_sa1(geocoded, sa1_geojson)
+
+    print(f"\nTotal listings geocoded: {len(geocoded)}")
+
+    print("\nFetching Vicmap lot sizes …")
+    vicmap_lot_sizes = fetch_vicmap_lot_sizes(sa1_geojson)
+
+    merge_and_write(sa1_geojson, prices_by_sa1, vicmap_lot_sizes, listing_lot_sizes)
 
 
 if __name__ == "__main__":
