@@ -41,7 +41,7 @@ SUBURB_TARGETS = [
 ]
 
 
-# ── Step 1: SA1 boundaries from ABS REST API ──────────────────────────────────
+# ── Step 1: SA1 boundaries from ABS REST API ────────────────────────────────────────────
 
 def fetch_sa1_boundaries():
     print("Fetching SA1 boundaries from ABS REST API …")
@@ -136,7 +136,7 @@ def _parse_rea_page(html: str, suburb: str) -> list:
 
 def _parse_jsonld(html: str, suburb: str) -> list:
     listings = []
-    for m in re.finditer(r'<script[^>]+type=["\'application/ld\+json["\'][^>]*>(.*?)</script>', html, re.DOTALL):
+    for m in re.finditer(r'<script[^>]+type=["\'application/ld\+json["\'\][^>]*>(.*?)</script>', html, re.DOTALL):
         try:
             data = json.loads(m.group(1))
             items = data if isinstance(data, list) else [data]
@@ -149,7 +149,7 @@ def _parse_jsonld(html: str, suburb: str) -> list:
     return listings
 
 
-def _extract_listing(item: dict, suburb: str) -> dict | None:
+def _extract_listing(item, suburb):
     if not isinstance(item, dict):
         return None
     prop_type = (
@@ -194,7 +194,7 @@ def _extract_listing(item: dict, suburb: str) -> dict | None:
     return {"address": address_str, "price": price, "land_m2": float(land_size) if land_size else None}
 
 
-# ── Step 3: Geocode addresses ─────────────────────────────────────────────────
+# ── Step 3: Geocode addresses ───────────────────────────────────────────────────
 
 def geocode_listings(listings: list) -> list:
     try:
@@ -221,7 +221,7 @@ def geocode_listings(listings: list) -> list:
     return geocoded
 
 
-# ── Step 4: Assign to SA1 ────────────────────────────────────────────────────
+# ── Step 4: Assign to SA1 ────────────────────────────────────────────────────────
 
 def assign_to_sa1(listings_geocoded: list, sa1_geojson: dict) -> dict:
     try:
@@ -246,7 +246,7 @@ def assign_to_sa1(listings_geocoded: list, sa1_geojson: dict) -> dict:
     return dict(prices_by_sa1)
 
 
-# ── Step 5: Lot sizes from Vicmap ────────────────────────────────────────────
+# ── Step 5: Lot sizes from Vicmap ────────────────────────────────────────────────────
 
 def fetch_vicmap_lot_sizes(sa1_geojson: dict) -> dict:
     try:
@@ -298,7 +298,7 @@ def fetch_vicmap_lot_sizes(sa1_geojson: dict) -> dict:
     return lot_sizes
 
 
-# ── Step 6: Merge and write ───────────────────────────────────────────────────
+# ── Step 6: Merge and write ────────────────────────────────────────────────────────────────
 
 def merge_and_write(sa1_geojson: dict, prices_by_sa1: dict, lot_sizes: dict):
     import statistics
@@ -326,7 +326,7 @@ def merge_and_write(sa1_geojson: dict, prices_by_sa1: dict, lot_sizes: dict):
     print(f"  With lots:  {sum(1 for f in sa1_geojson['features'] if f['properties']['median_lot_m2'])}")
 
 
-# ── Main ──────────────────────────────────────────────────────────────────────
+# ── Main ────────────────────────────────────────────────────────────────────────────────
 
 def main():
     print("=" * 60)
