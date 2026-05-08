@@ -45,35 +45,72 @@ SUBURB_TARGETS = [
 
 def fetch_sa1_boundaries():
     print("Fetching SA1 boundaries from ABS REST API …")
-    base = "https://geo.abs.gov.au/arcgis/rest/services/ASGS2021/SA1/MapServer"
-    quoted = ",".join(f"'{c}'" for c in SA2_CODES)
-    unquoted = ",".join(SA2_CODES)
-    candidates = [
-        (f"{base}/0/query", f"SA2_CODE_2021 IN ({quoted})"),
-        (f"{base}/1/query", f"SA2_CODE_2021 IN ({quoted})"),
-        (f"{base}/0/query", f"SA2_CODE_2021 IN ({unquoted})"),
-        (f"{base}/1/query", f"SA2_CODE_2021 IN ({unquoted})"),
+
+    # Thornbury/Northcote bounding box (EPSG:4326)
+    BBOX = "144.975,-37.800,145.025,-37.745"
+
+    bases = [
+        "https://geo.abs.gov.au/arcgis/rest/services/ASGS2021/SA1/MapServer",
+        "https://geo.abs.gov.au/arcgis/rest/services/ASGS_2021/SA1/MapServer",
     ]
-    for url, where in candidates:
-        params = {
-            "where":          where,
-            "outFields":      "SA1_CODE_2021,SA1_NAME_2021,SA2_NAME_2021,SA2_CODE_2021",
-            "outSR":          "4326",
-            "f":              "geojson",
-            "returnGeometry": "true",
-        }
-        try:
-            r = requests.get(url, params=params, timeout=30)
+
+    for base in bases:
+        for layer in ("0", "1", "2"):
+            url = f"{base}/{layer}/query"
+
+            # Probe with bbox to see if layer has data and what fields exist
+            probe = requests.get(url, params={
+                "where": "1=1",
+                "geometry": BBOX,
+                "geometryType": "esriGeometryEnvelope",
+                "inSR": "4326",
+                "spatialRel": "esriSpatialRelIntersects",
+                "outFields": "*",
+                "outSR": "4326",
+                "f": "geojson",
+                "resultRecordCount": 3,
+            }, timeout=30)
+            if probe.status_code != 200:
+                continue
+            probe_data = probe.json()
+            features = probe_data.get("features", [])
+            if not features:
+                continue
+
+            sample_props = features[0].get("properties", {})
+            print(f"  Layer {base.split('/')[-1]}/{layer} has data. Fields: {list(sample_props.keys())}")
+
+            # Fetch all SA1s in the bbox
+            r = requests.get(url, params={
+                "where": "1=1",
+                "geometry": BBOX,
+                "geometryType": "esriGeometryEnvelope",
+                "inSR": "4326",
+                "spatialRel": "esriSpatialRelIntersects",
+                "outFields": "*",
+                "outSR": "4326",
+                "f": "geojson",
+                "resultRecordCount": 200,
+            }, timeout=30)
             r.raise_for_status()
             geojson = r.json()
             n = len(geojson.get("features", []))
+            print(f"  Got {n} SA1 features from bbox query")
             if n > 0:
-                print(f"  Got {n} SA1 features")
+                # Normalise field names to SA1_CODE_2021 / SA2_CODE_2021
+                sa2_field = next((k for k in sample_props if "SA2" in k.upper() and "CODE" in k.upper()), None)
+                if sa2_field:
+                    for f in geojson["features"]:
+                        code = str(f["properties"].get(sa2_field, ""))
+                        f["properties"]["SA2_CODE_2021"] = code
+                        f["properties"]["SA2_NAME_2021"] = SA2_NAMES.get(code, "")
+                sa1_field = next((k for k in sample_props if "SA1" in k.upper() and "CODE" in k.upper()), None)
+                if sa1_field and sa1_field != "SA1_CODE_2021":
+                    for f in geojson["features"]:
+                        f["properties"]["SA1_CODE_2021"] = f["properties"].get(sa1_field, "")
                 return geojson
-            print(f"  0 features from layer {url.split('/')[-2]} with: {where[:60]}")
-        except Exception as e:
-            print(f"  Error ({url.split('/')[-2]}): {e}")
-    sys.exit("No SA1 features returned from any ABS endpoint — check network or SA2 codes")
+
+    sys.exit("No SA1 features found — ABS API may be down or bbox is wrong")
 
 
 # ── Step 2: Scrape sold house listings from realestate.com.au ─────────────────
