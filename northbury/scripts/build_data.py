@@ -45,23 +45,35 @@ SUBURB_TARGETS = [
 
 def fetch_sa1_boundaries():
     print("Fetching SA1 boundaries from ABS REST API …")
-    url = "https://geo.abs.gov.au/arcgis/rest/services/ASGS2021/SA1/MapServer/1/query"
-    codes = ",".join(SA2_CODES)
-    params = {
-        "where":      f"SA2_CODE_2021 IN ({codes})",
-        "outFields":  "SA1_CODE_2021,SA1_NAME_2021,SA2_NAME_2021,SA2_CODE_2021",
-        "outSR":      "4326",
-        "f":          "geojson",
-        "returnGeometry": "true",
-    }
-    r = requests.get(url, params=params, timeout=30)
-    r.raise_for_status()
-    geojson = r.json()
-    n = len(geojson.get("features", []))
-    print(f"  Got {n} SA1 features")
-    if n == 0:
-        sys.exit("No SA1 features returned — check SA2 codes or ABS API availability")
-    return geojson
+    base = "https://geo.abs.gov.au/arcgis/rest/services/ASGS2021/SA1/MapServer"
+    quoted = ",".join(f"'{c}'" for c in SA2_CODES)
+    unquoted = ",".join(SA2_CODES)
+    candidates = [
+        (f"{base}/0/query", f"SA2_CODE_2021 IN ({quoted})"),
+        (f"{base}/1/query", f"SA2_CODE_2021 IN ({quoted})"),
+        (f"{base}/0/query", f"SA2_CODE_2021 IN ({unquoted})"),
+        (f"{base}/1/query", f"SA2_CODE_2021 IN ({unquoted})"),
+    ]
+    for url, where in candidates:
+        params = {
+            "where":          where,
+            "outFields":      "SA1_CODE_2021,SA1_NAME_2021,SA2_NAME_2021,SA2_CODE_2021",
+            "outSR":          "4326",
+            "f":              "geojson",
+            "returnGeometry": "true",
+        }
+        try:
+            r = requests.get(url, params=params, timeout=30)
+            r.raise_for_status()
+            geojson = r.json()
+            n = len(geojson.get("features", []))
+            if n > 0:
+                print(f"  Got {n} SA1 features")
+                return geojson
+            print(f"  0 features from layer {url.split('/')[-2]} with: {where[:60]}")
+        except Exception as e:
+            print(f"  Error ({url.split('/')[-2]}): {e}")
+    sys.exit("No SA1 features returned from any ABS endpoint — check network or SA2 codes")
 
 
 # ── Step 2: Scrape sold house listings from realestate.com.au ─────────────────
@@ -136,7 +148,7 @@ def _parse_rea_page(html: str, suburb: str) -> list:
 
 def _parse_jsonld(html: str, suburb: str) -> list:
     listings = []
-    for m in re.finditer(r'<script[^>]+type=["\'application/ld\+json["\'\][^>]*>(.*?)</script>', html, re.DOTALL):
+    for m in re.finditer(r'<script[^>]+type=["\']application/ld\+json["\'][^>]*>(.*?)</script>', html, re.DOTALL):
         try:
             data = json.loads(m.group(1))
             items = data if isinstance(data, list) else [data]
