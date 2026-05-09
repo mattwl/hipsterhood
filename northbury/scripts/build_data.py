@@ -481,10 +481,10 @@ def enrich_with_parcel_sizes(geocoded: list, parcels_proj) -> list:
         geometry=[Point(l["lng"], l["lat"]) for l in geocoded],
         crs="EPSG:4326",
     ).to_crs("EPSG:7855")
-    # Nominatim often geocodes to the road centreline (~12m outside the parcel).
-    # A 25m buffer bridges that gap so the point's disk overlaps the property polygon.
+    # Nominatim often geocodes to the road centreline (~12–30m outside the parcel).
+    # A 50m buffer bridges that gap so the point's disk overlaps the property polygon.
     pts_buf = pts.copy()
-    pts_buf["geometry"] = pts_buf["geometry"].buffer(25)
+    pts_buf["geometry"] = pts_buf["geometry"].buffer(50)
     joined = gpd.sjoin(
         pts_buf[["_idx", "geometry"]],
         parcels_proj[["area_m2", "geometry"]],
