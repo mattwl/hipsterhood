@@ -225,13 +225,27 @@ _WFS_BASES = [
     "https://opendata.maps.vic.gov.au/geoserver/vmpropertysmp/wfs",
 ]
 
+# Preferred layers tried first — land parcel polygons (one per land lot, not per strata title).
+# "parcel_view" and "parcel_property" are title-based views that include tiny strata units;
+# "v_parcel_mp" is the actual land parcel polygon layer.
+_WFS_PREFERRED = [
+    "open-data-platform:v_parcel_mp",
+    "vmpropertysmp:PARCEL_MP",
+    "VMPROPERTYSMP:PARCEL_MP",
+    "PARCEL_MP",
+]
+
 _WFS_LAYER_CANDIDATES = [
+    "open-data-platform:v_parcel_mp",
     "vmpropertysmp:PARCEL_MP",
     "VMPROPERTYSMP:PARCEL_MP",
     "PARCEL_SHP",
     "vmpropertysmp:PARCEL_SHP",
     "PARCEL_MP",
 ]
+
+# Layers that match "PARCEL" but are title/strata views — skip them if a land-parcel layer works.
+_WFS_SKIP = {"parcel_view", "parcel_property", "cl_tenure_parcel"}
 
 
 def _wfs_discover_parcel_layers(base_url: str) -> list:
@@ -311,7 +325,13 @@ def fetch_vicmap_lot_sizes(sa1_geojson: dict) -> dict:
     parcels_features = []
     for base in _WFS_BASES:
         discovered = _wfs_discover_parcel_layers(base)
-        layers_to_try = discovered + [l for l in _WFS_LAYER_CANDIDATES if l not in discovered]
+        # Try preferred land-parcel layers first, then other discovered layers (excluding
+        # title/strata views which have one tiny polygon per dwelling unit), then candidates.
+        preferred = [l for l in _WFS_PREFERRED if l in discovered]
+        others = [l for l in discovered if l not in _WFS_PREFERRED
+                  and not any(skip in l.lower() for skip in _WFS_SKIP)]
+        fallbacks = [l for l in _WFS_LAYER_CANDIDATES if l not in discovered]
+        layers_to_try = preferred + others + fallbacks
         for layer in layers_to_try:
             feats = _wfs_get_features(base, layer, bbox_v1, bbox_v2)
             if feats:
@@ -351,9 +371,11 @@ def fetch_vicmap_lot_sizes(sa1_geojson: dict) -> dict:
     parcels_gdf = gpd.GeoDataFrame.from_features(parcels_features, crs="EPSG:4326")
     parcels_proj = parcels_gdf.to_crs("EPSG:7855")
     parcels_proj["area_m2"] = parcels_proj.geometry.area
+    before_filter = len(parcels_proj)
     parcels_proj = parcels_proj[
         (parcels_proj["area_m2"] >= 50) & (parcels_proj["area_m2"] <= 5000)
     ]
+    print(f"  After area filter (50–5000 m²): {len(parcels_proj)} of {before_filter} parcels")
     sa1_proj = sa1_gdf.to_crs("EPSG:7855")
     sa1_code_col = next(
         (c for c in sa1_proj.columns if "SA1" in c.upper() and "CODE" in c.upper()),
