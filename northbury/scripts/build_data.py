@@ -41,7 +41,7 @@ SA2_NAMES = {
 }
 
 
-# ── Step 1: SA1 boundaries from ABS REST API ────────────────────────────────────────────────
+# ── Step 1: SA1 boundaries from ABS REST API ──────────────────────────────────────────────
 
 def fetch_sa1_boundaries():
     print("Fetching SA1 boundaries from ABS REST API …")
@@ -100,7 +100,7 @@ def fetch_sa1_boundaries():
     sys.exit("No SA1 features found — ABS API may be down or bbox is wrong")
 
 
-# ── Step 2: Fetch listings (scrape or load from file) ────────────────────────
+# ── Step 2: Fetch listings (scrape or load from file) ───────────────────────
 
 SUBURB_TARGETS = [
     {"suburb": "Thornbury", "postcode": "3071"},
@@ -168,7 +168,7 @@ def _fetch_rea_page(url: str) -> tuple:
     return "", None
 
 
-# ── SQM Research scraper ─────────────────────────────────────────────────────────────
+# ── SQM Research scraper ──────────────────────────────────────────────────────
 
 def scrape_sqm_listings(postcode: str, suburb: str) -> list:
     """Scrape sold house listings from sqmresearch.com.au (no Cloudflare)."""
@@ -196,7 +196,8 @@ def scrape_sqm_listings(postcode: str, suburb: str) -> list:
 
         if page_num == 1:
             title_m = re.search(r"<title>(.*?)</title>", html, re.I)
-            print(f"    Page 1: {len(html)} bytes, title={title_m.group(1)!r if title_m else '?'}")
+            page_title = repr(title_m.group(1)) if title_m else "?"
+            print(f"    Page 1: {len(html)} bytes, title={page_title}")
 
         found = _parse_sqm_page(html, suburb)
         if not found:
@@ -471,7 +472,7 @@ def get_listings() -> list:
     return all_listings
 
 
-# ── Step 3: Geocode addresses ───────────────────────────────────────────────────
+# ── Step 3: Geocode addresses ───────────────────────────────────────────────
 
 def geocode_listings(listings: list) -> list:
     try:
@@ -500,7 +501,7 @@ def geocode_listings(listings: list) -> list:
     return geocoded
 
 
-# ── Step 4: Assign to SA1, extract prices + lot sizes ────────────────────────
+# ── Step 4: Assign to SA1, extract prices + lot sizes ──────────────────────
 
 def assign_to_sa1(listings_geocoded: list, sa1_geojson: dict) -> tuple:
     try:
@@ -669,7 +670,7 @@ def fetch_vicmap_lot_sizes(sa1_geojson: dict) -> dict:
     return lot_sizes
 
 
-# ── Step 6: Merge and write ─────────────────────────────────────────────────────
+# ── Step 6: Merge and write ───────────────────────────────────────────────
 
 def merge_and_write(sa1_geojson, prices_by_sa1, vicmap_lot_sizes, listing_lot_sizes):
     median_prices = {}
@@ -708,7 +709,7 @@ def merge_and_write(sa1_geojson, prices_by_sa1, vicmap_lot_sizes, listing_lot_si
     print(f"  With lots:  {n_lots}")
 
 
-# ── Main ────────────────────────────────────────────────────────────────────────────────
+# ── Main ──────────────────────────────────────────────────────────────────────────────────
 
 def main():
     print("=" * 60)
