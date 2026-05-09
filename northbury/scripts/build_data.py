@@ -372,19 +372,38 @@ def _wfs_get_features(base_url: str, layer: str, bbox_v1: str, bbox_v2: str) -> 
 
 
 def _build_parcels_gdf(sa1_geojson: dict):
-    """Fetch Vicmap parcels → GeoDataFrame in EPSG:7855, filtered to 50–5000 m²."""
+    """Fetch Vicmap parcels → GeoDataFrame in EPSG:7855.
+
+    Tiles the bounding box into a 3×3 grid and fetches each tile separately
+    to work around the server's ~5000-feature-per-request cap.
+    """
     try:
         import geopandas as gpd
+        import pandas as pd
     except ImportError:
         print("  geopandas not installed -- skipping Vicmap")
         return None
     sa1_gdf = gpd.GeoDataFrame.from_features(sa1_geojson["features"], crs="EPSG:4326")
     minx, miny, maxx, maxy = sa1_gdf.total_bounds
-    bbox_v1   = f"{minx},{miny},{maxx},{maxy},EPSG:4326"
-    bbox_v2   = f"{minx},{miny},{maxx},{maxy},EPSG:4326"
-    bbox_esri = f"{minx},{miny},{maxx},{maxy}"
-    print("  Fetching Vicmap parcel data ...")
-    parcels_features = []
+
+    # Split into a 3×3 grid to stay under the server's per-request feature cap
+    nx, ny = 3, 3
+    dx = (maxx - minx) / nx
+    dy = (maxy - miny) / ny
+    tiles = [
+        (minx + i * dx, miny + j * dy, minx + (i + 1) * dx, miny + (j + 1) * dy)
+        for i in range(nx) for j in range(ny)
+    ]
+
+    print(f"  Fetching Vicmap parcels in {len(tiles)} tiles ...")
+    all_features: list = []
+    layer_used = None
+
+    # Discover layers once using the full bbox
+    bbox_full_v1 = f"{minx},{miny},{maxx},{maxy},EPSG:4326"
+    bbox_full_v2 = f"{minx},{miny},{maxx},{maxy},EPSG:4326"
+    chosen_base  = None
+    chosen_layer = None
     for base in _WFS_BASES:
         discovered = _wfs_discover_parcel_layers(base)
         preferred  = [l for l in _WFS_PREFERRED if l in discovered]
@@ -392,13 +411,26 @@ def _build_parcels_gdf(sa1_geojson: dict):
                       and not any(skip in l.lower() for skip in _WFS_SKIP)]
         fallbacks  = [l for l in _WFS_LAYER_CANDIDATES if l not in discovered]
         for layer in preferred + others + fallbacks:
-            feats = _wfs_get_features(base, layer, bbox_v1, bbox_v2)
-            if feats:
-                print(f"  WFS {base.split('/')[-1]} / {layer}: {len(feats)} parcel features")
-                parcels_features = feats
+            # Probe with the full bbox to confirm this layer works
+            probe = _wfs_get_features(base, layer, bbox_full_v1, bbox_full_v2)
+            if probe:
+                chosen_base  = base
+                chosen_layer = layer
+                print(f"  Using WFS {base.split('/')[-1]} / {layer}")
                 break
-        if parcels_features:
+        if chosen_base:
             break
+
+    if chosen_base:
+        for i, (tx1, ty1, tx2, ty2) in enumerate(tiles):
+            tile_bbox = f"{tx1},{ty1},{tx2},{ty2},EPSG:4326"
+            feats = _wfs_get_features(chosen_base, chosen_layer, tile_bbox, tile_bbox)
+            all_features.extend(feats)
+            print(f"    Tile {i+1}/{len(tiles)}: {len(feats)} features (total so far: {len(all_features)})")
+
+    parcels_features = all_features  # may be overwritten by ArcGIS fallback below
+
+    bbox_esri = f"{minx},{miny},{maxx},{maxy}"
     if not parcels_features:
         arcgis_services = [
             "https://services6.arcgis.com/GB33F62SbDxJjwEL/arcgis/rest/services/Vicmap_Property/FeatureServer",
@@ -449,12 +481,16 @@ def enrich_with_parcel_sizes(geocoded: list, parcels_proj) -> list:
         geometry=[Point(l["lng"], l["lat"]) for l in geocoded],
         crs="EPSG:4326",
     ).to_crs("EPSG:7855")
+    # Nominatim often geocodes to the road centreline (~12m outside the parcel).
+    # A 25m buffer bridges that gap so the point's disk overlaps the property polygon.
+    pts_buf = pts.copy()
+    pts_buf["geometry"] = pts_buf["geometry"].buffer(25)
     joined = gpd.sjoin(
-        pts[["_idx", "geometry"]],
+        pts_buf[["_idx", "geometry"]],
         parcels_proj[["area_m2", "geometry"]],
         how="left", predicate="intersects",
     )
-    # Keep the largest-area match per listing (picks the land lot over a tiny neighbour boundary)
+    # When the buffer touches multiple parcels, prefer the largest (house lot beats strata unit)
     joined = joined.sort_values("area_m2", ascending=False).drop_duplicates(subset="_idx", keep="first")
     area_by_idx = dict(zip(joined["_idx"], joined["area_m2"]))
     enriched = []
