@@ -28,12 +28,13 @@
     header {
       background: #fff;
       border-bottom: 1px solid #e0e0e0;
-      padding: 0.7rem 1.2rem;
+      padding: 0.55rem 1.2rem;
       display: flex;
       align-items: center;
-      gap: 1.5rem;
+      gap: 1rem;
       flex-shrink: 0;
       flex-wrap: wrap;
+      row-gap: 0.4rem;
     }
 
     header h1 {
@@ -43,14 +44,28 @@
       white-space: nowrap;
     }
 
+    .header-divider {
+      width: 1px;
+      height: 1.4rem;
+      background: #e0e0e0;
+      flex-shrink: 0;
+    }
+
     /* ── Layer toggle ── */
     .layer-toggle {
       display: flex;
       gap: 6px;
+      align-items: center;
+    }
+
+    .toggle-label {
+      font-size: 0.75rem;
+      color: #999;
+      white-space: nowrap;
     }
 
     .layer-btn {
-      padding: 5px 14px;
+      padding: 5px 13px;
       border: 1.5px solid #ccc;
       border-radius: 20px;
       background: #fff;
@@ -66,6 +81,12 @@
     .layer-btn.active {
       background: #222;
       border-color: #222;
+      color: #fff;
+    }
+
+    .layer-btn.overlay-active {
+      background: #1565c0;
+      border-color: #1565c0;
       color: #fff;
     }
 
@@ -135,7 +156,7 @@
       flex-shrink: 0;
     }
 
-    /* ── Tooltip ── */
+    /* ── SA1 Tooltip ── */
     .sa1-tooltip {
       font-size: 12px;
       line-height: 1.6;
@@ -157,6 +178,29 @@
     .sa1-tooltip .tt-label { color: #888; }
     .sa1-tooltip .tt-val   { font-weight: 600; }
     .sa1-tooltip .tt-na    { color: #bbb; font-style: italic; }
+    .sa1-tooltip .tt-sep   { border-top: 1px solid #f0f0f0; margin: 4px 0; }
+
+    /* ── Sale popup ── */
+    .sale-popup {
+      font-size: 12px;
+      line-height: 1.7;
+      min-width: 180px;
+    }
+    .sale-popup strong { display: block; font-size: 12px; margin-bottom: 3px; }
+    .sale-popup .tt-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .sale-popup .tt-label { color: #888; }
+    .sale-popup .tt-val   { font-weight: 600; }
+
+    /* ── Lot polygon overlay colours (used as CSS vars via JS) ── */
+    .lot-tiny   { fill: #ef9a9a; stroke: #c62828; }
+    .lot-small  { fill: #ffe082; stroke: #f57f17; }
+    .lot-medium { fill: #a5d6a7; stroke: #2e7d32; }
+    .lot-large  { fill: #90caf9; stroke: #0d47a1; }
+    .lot-xl     { fill: #ce93d8; stroke: #6a1b9a; }
 
     /* ── No-data banner ── */
     #no-data-banner {
@@ -192,7 +236,21 @@
 
   <header>
     <h1>Thornbury + Northcote</h1>
+
+    <!-- SA1 choropleth layer selector -->
     <div class="layer-toggle" id="layer-toggle"></div>
+
+    <div class="header-divider"></div>
+
+    <!-- Lots + Sales overlay toggle -->
+    <div class="layer-toggle">
+      <button class="layer-btn" id="overlay-btn" onclick="toggleOverlay()">Lots + Sales</button>
+    </div>
+
+    <!-- Lot size filter (shown when overlay is on) -->
+    <div class="layer-toggle" id="lot-filter" style="display:none">
+      <span class="toggle-label">Show lots:</span>
+    </div>
   </header>
 
   <div class="map-wrap">
@@ -200,22 +258,21 @@
     <div id="no-data-banner">
       <h2>Data not yet generated</h2>
       <p>Run the build script to fetch SA1 boundaries, property prices, and lot sizes:</p>
-      <code>pip install requests pandas geopandas shapely geopy playwright<br>
-python3 -m playwright install chromium<br>
+      <code>pip install requests pandas geopandas shapely geopy<br>
 python3 northbury/scripts/build_data.py</code>
     </div>
   </div>
 
   <script>
   // ── Layer definitions ────────────────────────────────────────────────────────
-  // To add a new layer, add one entry here — nothing else needs to change.
+  // To add a new choropleth layer, add one entry here only.
   const LAYERS = {
     prices: {
       label:  "House Prices",
       field:  "median_price",
       format: v => "$" + Math.round(v / 1000) + "k",
       scale:  chroma.scale(["#fff3e0", "#fb8c00", "#bf360c"]).mode("lab"),
-      note:   "Median sold price — houses only, last 24 months\n(realestate.com.au, geocoded to SA1)",
+      note:   "Median sold price — houses only\n(realestate.com.au, geocoded to SA1)",
     },
     lots: {
       label:  "Lot Sizes",
@@ -224,12 +281,45 @@ python3 northbury/scripts/build_data.py</code>
       scale:  chroma.scale(["#e3f2fd", "#1976d2", "#0d47a1"]).mode("lab"),
       note:   "Median residential lot size — Vicmap parcel data",
     },
+    hedonic: {
+      label:  "Land Value",
+      field:  "hedonic_price",
+      format: v => "$" + Math.round(v / 1000) + "k",
+      scale:  chroma.scale(["#f3e5f5", "#8e24aa", "#4a148c"]).mode("lab"),
+      note:   "Hedonic-adjusted price per SA1\nControls for beds, baths, cars, lot size via OLS.\nShows pure location / land value.",
+    },
   };
 
-  let activeLayerId = "prices";
-  let sa1Layer      = null;
-  let geojsonData   = null;
-  let domainByLayer = {};
+  // ── Lot size filter definitions ──────────────────────────────────────────────
+  const LOT_FILTERS = [
+    { label: "All",     min: 0,    max: Infinity },
+    { label: "≥ 400",  min: 400,  max: Infinity },
+    { label: "≥ 500",  min: 500,  max: Infinity },
+    { label: "≥ 600",  min: 600,  max: Infinity },
+    { label: "≥ 800",  min: 800,  max: Infinity },
+  ];
+
+  // Returns a fill/stroke colour based on lot area
+  function lotColor(area) {
+    if (area >= 800) return { fill: "#ce93d8", stroke: "#6a1b9a" };
+    if (area >= 600) return { fill: "#90caf9", stroke: "#0d47a1" };
+    if (area >= 500) return { fill: "#a5d6a7", stroke: "#2e7d32" };
+    if (area >= 400) return { fill: "#ffe082", stroke: "#e65100" };
+    return              { fill: "#ef9a9a", stroke: "#b71c1c" };
+  }
+
+  let activeLayerId  = "prices";
+  let sa1Layer       = null;
+  let geojsonData    = null;
+  let domainByLayer  = {};
+
+  let showOverlay    = false;
+  let overlayLoaded  = false;
+  let lotsData       = null;
+  let salesData      = null;
+  let lotsLayer      = null;
+  let salesLayer     = null;
+  let activeLotFilter = 0;   // index into LOT_FILTERS
 
   // ── Map setup ────────────────────────────────────────────────────────────────
   const map = L.map("map", { zoomControl: true });
@@ -249,10 +339,9 @@ python3 northbury/scripts/build_data.py</code>
       const layer = LAYERS[layerId];
       const [lo, hi] = domain;
       const steps = 6;
-      const gradientParts = Array.from({length: steps}, (_, i) => {
-        const t = i / (steps - 1);
-        return layer.scale(t).hex();
-      });
+      const gradientParts = Array.from({length: steps}, (_, i) =>
+        layer.scale(i / (steps - 1)).hex()
+      );
       this._div.innerHTML = `
         <div class="legend-title">${layer.label}</div>
         <div class="legend-gradient"
@@ -272,7 +361,7 @@ python3 northbury/scripts/build_data.py</code>
   const legend = new LegendControl({ position: "bottomright" });
   legend.addTo(map);
 
-  // ── Layer toggle buttons ─────────────────────────────────────────────────────
+  // ── SA1 choropleth layer toggle buttons ──────────────────────────────────────
   const toggleEl = document.getElementById("layer-toggle");
   Object.entries(LAYERS).forEach(([id, cfg]) => {
     const btn = document.createElement("button");
@@ -285,19 +374,156 @@ python3 northbury/scripts/build_data.py</code>
 
   function switchLayer(id) {
     activeLayerId = id;
-    toggleEl.querySelectorAll(".layer-btn").forEach(b => {
-      b.classList.toggle("active", b.dataset.layerId === id);
-    });
+    toggleEl.querySelectorAll(".layer-btn").forEach(b =>
+      b.classList.toggle("active", b.dataset.layerId === id)
+    );
     if (sa1Layer && geojsonData) {
       sa1Layer.setStyle(styleFeature);
       legend.update(id, domainByLayer[id]);
     }
   }
 
+  // ── Lot size filter buttons ──────────────────────────────────────────────────
+  const lotFilterEl = document.getElementById("lot-filter");
+  LOT_FILTERS.forEach((f, idx) => {
+    const btn = document.createElement("button");
+    btn.className = "layer-btn" + (idx === 0 ? " active" : "");
+    btn.textContent = f.label;
+    btn.dataset.filterIdx = idx;
+    btn.onclick = () => applyLotFilter(idx);
+    lotFilterEl.appendChild(btn);
+  });
+
+  function applyLotFilter(idx) {
+    activeLotFilter = idx;
+    lotFilterEl.querySelectorAll(".layer-btn").forEach(b =>
+      b.classList.toggle("active", +b.dataset.filterIdx === idx)
+    );
+    renderLots();
+    renderSales();
+  }
+
+  // ── Overlay toggle ───────────────────────────────────────────────────────────
+  function toggleOverlay() {
+    showOverlay = !showOverlay;
+    document.getElementById("overlay-btn").classList.toggle("overlay-active", showOverlay);
+    lotFilterEl.style.display = showOverlay ? "" : "none";
+    if (showOverlay && !overlayLoaded) {
+      overlayLoaded = true;
+      Promise.allSettled([
+        fetch("data/lots.geojson").then(r => r.ok ? r.json() : null).catch(() => null),
+        fetch("data/sales.geojson").then(r => r.ok ? r.json() : null).catch(() => null),
+      ]).then(([lr, sr]) => {
+        lotsData  = lr.value || null;
+        salesData = sr.value || null;
+        renderLots();
+        renderSales();
+      });
+    } else {
+      renderLots();
+      renderSales();
+    }
+  }
+
+  // ── Lot polygon layer ────────────────────────────────────────────────────────
+  function renderLots() {
+    if (lotsLayer) { map.removeLayer(lotsLayer); lotsLayer = null; }
+    if (!showOverlay || !lotsData) return;
+
+    const { min } = LOT_FILTERS[activeLotFilter];
+    const filtered = {
+      ...lotsData,
+      features: lotsData.features.filter(f => f.properties.area_m2 >= min),
+    };
+
+    lotsLayer = L.geoJSON(filtered, {
+      style(feature) {
+        const c = lotColor(feature.properties.area_m2);
+        return { fillColor: c.fill, fillOpacity: 0.35, color: c.stroke, weight: 1 };
+      },
+      onEachFeature(feature, layer) {
+        const p = feature.properties;
+        layer.on({
+          mouseover(e) {
+            e.target.setStyle({ fillOpacity: 0.6, weight: 2 });
+            e.target.bringToFront();
+            e.target.bindTooltip(
+              `<div class="sa1-tooltip">
+                <strong>${p.area_m2} m² lot</strong>
+                ${p.sa1_code ? `<div class="tt-row"><span class="tt-label">SA1</span><span class="tt-val">${p.sa1_code}</span></div>` : ""}
+              </div>`,
+              { sticky: true, opacity: 1 }
+            ).openTooltip();
+          },
+          mouseout(e) {
+            const c = lotColor(p.area_m2);
+            e.target.setStyle({ fillOpacity: 0.35, color: c.stroke, weight: 1 });
+            e.target.closeTooltip();
+          },
+        });
+      },
+    }).addTo(map);
+  }
+
+  // ── Sale dot layer ───────────────────────────────────────────────────────────
+  function renderSales() {
+    if (salesLayer) { map.removeLayer(salesLayer); salesLayer = null; }
+    if (!showOverlay || !salesData) return;
+
+    const { min } = LOT_FILTERS[activeLotFilter];
+
+    salesLayer = L.geoJSON(salesData, {
+      filter(feature) {
+        const lm = feature.properties.land_m2;
+        // When min=0, show all; otherwise require land_m2 >= min
+        return min === 0 || (lm != null && lm >= min);
+      },
+      pointToLayer(feature, latlng) {
+        const p = feature.properties;
+        return L.circleMarker(latlng, {
+          radius:      6,
+          fillColor:   p.price ? "#e53935" : "#888",
+          fillOpacity: 0.9,
+          color:       "#fff",
+          weight:      1.5,
+        });
+      },
+      onEachFeature(feature, layer) {
+        const p = feature.properties;
+        const price = p.price
+          ? "$" + (p.price / 1000).toFixed(0) + "k"
+          : "Not disclosed";
+        const rows = [
+          ["Price",    price],
+          p.beds  != null ? ["Beds",   p.beds]                        : null,
+          p.baths != null ? ["Baths",  p.baths]                       : null,
+          p.cars  != null ? ["Cars",   p.cars]                        : null,
+          p.land_m2       ? ["Lot",    Math.round(p.land_m2) + " m²"] : null,
+          p.sold_date     ? ["Sold",   p.sold_date]                   : null,
+        ].filter(Boolean);
+
+        layer.bindPopup(`
+          <div class="sale-popup">
+            <strong>${p.address || "Address unknown"}</strong>
+            ${rows.map(([label, val]) =>
+              `<div class="tt-row">
+                <span class="tt-label">${label}</span>
+                <span class="tt-val">${val}</span>
+              </div>`
+            ).join("")}
+          </div>
+        `);
+      },
+    }).addTo(map);
+
+    // Bring sales dots above lot polygons
+    if (lotsLayer) salesLayer.bringToFront();
+  }
+
   // ── Choropleth styling ───────────────────────────────────────────────────────
   function styleFeature(feature) {
-    const layer = LAYERS[activeLayerId];
-    const val   = feature.properties[layer.field];
+    const layer  = LAYERS[activeLayerId];
+    const val    = feature.properties[layer.field];
     const domain = domainByLayer[activeLayerId];
     if (!val || !domain) return { fillColor: "#d8d8d8", fillOpacity: 0.6, color: "#fff", weight: 1 };
     const t = (val - domain[0]) / (domain[1] - domain[0]);
@@ -309,14 +535,15 @@ python3 northbury/scripts/build_data.py</code>
     };
   }
 
-  // ── Tooltip ──────────────────────────────────────────────────────────────────
+  // ── SA1 tooltip ─────────────────────────────────────────────────────────────
   function fmt(val, formatter) {
-    return val != null ? `<span class="tt-val">${formatter(val)}</span>`
-                       : `<span class="tt-na">No data</span>`;
+    return val != null
+      ? `<span class="tt-val">${formatter(val)}</span>`
+      : `<span class="tt-na">No data</span>`;
   }
 
   function bindEvents(feature, layer) {
-    const p = feature.properties;
+    const p      = feature.properties;
     const suburb = p.suburb || p.SA2_NAME_2021 || "";
     const sa1    = p.SA1_CODE_2021 || "";
 
@@ -324,6 +551,7 @@ python3 northbury/scripts/build_data.py</code>
       mouseover(e) {
         e.target.setStyle({ weight: 2.5, color: "#333", fillOpacity: 0.88 });
         e.target.bringToFront();
+        if (salesLayer) salesLayer.bringToFront();
 
         const content = `
           <div class="sa1-tooltip">
@@ -332,7 +560,14 @@ python3 northbury/scripts/build_data.py</code>
               <span class="tt-label">Median price</span>
               ${fmt(p.median_price, v => "$" + Math.round(v/1000) + "k")}
             </div>
-            ${p.sale_count ? `<div class="tt-row"><span class="tt-label">Sales (24mo)</span><span class="tt-val">${p.sale_count}</span></div>` : ""}
+            ${p.sale_count ? `<div class="tt-row"><span class="tt-label">Sales</span><span class="tt-val">${p.sale_count}</span></div>` : ""}
+            <div class="tt-sep"></div>
+            <div class="tt-row">
+              <span class="tt-label">Land value</span>
+              ${fmt(p.hedonic_price, v => "$" + Math.round(v/1000) + "k")}
+            </div>
+            ${p.hedonic_count >= 3 ? `<div class="tt-row"><span class="tt-label">Hedonic n</span><span class="tt-val">${p.hedonic_count}</span></div>` : ""}
+            <div class="tt-sep"></div>
             <div class="tt-row">
               <span class="tt-label">Median lot</span>
               ${fmt(p.median_lot_m2, v => Math.round(v) + " m²")}
@@ -340,7 +575,7 @@ python3 northbury/scripts/build_data.py</code>
             ${p.lot_count ? `<div class="tt-row"><span class="tt-label">Parcels</span><span class="tt-val">${p.lot_count}</span></div>` : ""}
             <div style="margin-top:4px;font-size:9.5px;color:#bbb">SA1 ${sa1}</div>
           </div>`;
-        e.target.bindTooltip(content, {sticky: true, opacity: 1, className: ""}).openTooltip();
+        e.target.bindTooltip(content, { sticky: true, opacity: 1, className: "" }).openTooltip();
       },
       mouseout(e) {
         sa1Layer.resetStyle(e.target);
@@ -349,7 +584,7 @@ python3 northbury/scripts/build_data.py</code>
     });
   }
 
-  // ── Compute domain (min/max) for each layer ──────────────────────────────────
+  // ── Compute domain (5th–95th percentile) for each layer ─────────────────────
   function computeDomains(features) {
     Object.keys(LAYERS).forEach(id => {
       const field = LAYERS[id].field;
@@ -365,7 +600,7 @@ python3 northbury/scripts/build_data.py</code>
     });
   }
 
-  // ── Load data ────────────────────────────────────────────────────────────────
+  // ── Load SA1 data ────────────────────────────────────────────────────────────
   fetch("data/sa1.geojson")
     .then(r => {
       if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
@@ -387,8 +622,8 @@ python3 northbury/scripts/build_data.py</code>
       computeDomains(features);
 
       sa1Layer = L.geoJSON(geojson, {
-        style:          styleFeature,
-        onEachFeature:  bindEvents,
+        style:         styleFeature,
+        onEachFeature: bindEvents,
       }).addTo(map);
 
       map.fitBounds(sa1Layer.getBounds(), { padding: [20, 20] });
