@@ -8,19 +8,21 @@ Builds northbury/data/sa1.geojson with:
   - Median lot size per SA1 (from raw_listings.json land_m2 field, or Vicmap WFS)
 
 Run:
-  pip install requests pandas geopandas shapely geopy
+  pip install requests pandas geopandas shapely geopy curl-cffi
   python3 northbury/scripts/build_data.py
 
-House price data input:
-  Place northbury/data/raw_listings.json with format:
-  [{"address": "12 Smith St, Thornbury VIC 3071", "price": 1250000, "land_m2": 420}, ...]
-  Fields: address (required), price (required), land_m2 (optional), property_type (optional)
+Listings source (in priority order):
+  1. northbury/data/raw_listings.json  — if present, used directly (skips scraping)
+     Format: [{"address": "12 Smith St, Thornbury VIC 3071", "price": 1250000, "land_m2": 420}, ...]
+  2. realestate.com.au scraper         — requires curl-cffi for Cloudflare bypass
+     pip install curl-cffi             — falls back to cloudscraper, then plain requests
 """
 
 import json
 import re
 import sys
 import statistics
+import time
 from pathlib import Path
 from collections import defaultdict
 
@@ -39,7 +41,7 @@ SA2_NAMES = {
 }
 
 
-# ── Step 1: SA1 boundaries from ABS REST API ──────────────────────────────────────────────
+# ── Step 1: SA1 boundaries from ABS REST API ────────────────────────────────────────────────
 
 def fetch_sa1_boundaries():
     print("Fetching SA1 boundaries from ABS REST API …")
@@ -127,46 +129,198 @@ def fetch_sa1_boundaries():
     sys.exit("No SA1 features found — ABS API may be down or bbox is wrong")
 
 
-# ── Step 2: Load listings from raw_listings.json ─────────────────────────────
+# ── Step 2: Fetch listings (scrape or load from file) ────────────────────────
+
+SUBURB_TARGETS = [
+    {"suburb": "Thornbury", "postcode": "3071"},
+    {"suburb": "Northcote", "postcode": "3070"},
+]
+
+_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+    ),
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-AU,en;q=0.9",
+    "Accept-Encoding": "gzip, deflate, br",
+}
+
+
+def _get_session():
+    """Return a requests-like session that bypasses Cloudflare if possible."""
+    # curl-cffi impersonates Chrome TLS fingerprint — most effective vs Cloudflare
+    try:
+        from curl_cffi import requests as cffi_requests
+        session = cffi_requests.Session(impersonate="chrome124")
+        print("  Using curl-cffi (Chrome TLS impersonation)")
+        return session, "cffi"
+    except ImportError:
+        pass
+
+    # cloudscraper handles JS challenge cookies
+    try:
+        import cloudscraper
+        session = cloudscraper.create_scraper(browser={"browser": "chrome", "platform": "darwin", "mobile": False})
+        print("  Using cloudscraper")
+        return session, "cloudscraper"
+    except ImportError:
+        pass
+
+    # Plain requests — likely blocked by Cloudflare but worth a try
+    s = requests.Session()
+    s.headers.update(_HEADERS)
+    print("  Using plain requests (may be blocked by Cloudflare)")
+    return s, "requests"
+
+
+def _fetch_page(session, url: str) -> str:
+    try:
+        r = session.get(url, headers=_HEADERS, timeout=30)
+        return r.text
+    except Exception as e:
+        print(f"    Fetch error: {e}")
+        return ""
+
+
+def scrape_rea_listings(suburb: str, postcode: str) -> list:
+    slug = suburb.lower().replace(" ", "-")
+    base_url = f"https://www.realestate.com.au/sold/property-house-in-{slug}%2C+vic+{postcode}/"
+
+    session, method = _get_session()
+    listings = []
+    print(f"  Scraping REA for {suburb} (houses, sold) …")
+
+    for page_num in range(1, 11):
+        url = base_url if page_num == 1 else f"{base_url}?page={page_num}"
+        html = _fetch_page(session, url)
+        if not html:
+            break
+
+        found = _parse_rea_page(html, suburb)
+
+        # Cloudflare detection
+        if not found and page_num == 1:
+            title_m = re.search(r"<title>(.*?)</title>", html, re.I)
+            title = title_m.group(1) if title_m else "(none)"
+            print(f"    Page 1 debug — title: {title!r}, html length: {len(html)}")
+            if len(html) < 5000 or "challenge" in title.lower() or not title_m:
+                print(f"    Cloudflare block detected with {method}. Try: pip install curl-cffi")
+                break
+
+        if not found:
+            print(f"    Page {page_num}: no listings (end of results)")
+            break
+
+        listings.extend(found)
+        print(f"    Page {page_num}: {len(found)} listings (total: {len(listings)})")
+        time.sleep(1.5)
+
+    return listings
+
+
+def _parse_rea_page(html: str, suburb: str) -> list:
+    listings = []
+    m = re.search(r"window\.__NEXT_DATA__\s*=\s*(\{.*?\})(?:\s*;|\s*</script>)", html, re.DOTALL)
+    if not m:
+        return _parse_jsonld(html, suburb)
+    try:
+        data = json.loads(m.group(1))
+    except json.JSONDecodeError:
+        return _parse_jsonld(html, suburb)
+
+    props = data.get("props", {}).get("pageProps", {})
+    results = (
+        props.get("searchResults", {}).get("results", []) or
+        props.get("listings", []) or
+        props.get("data", {}).get("results", [])
+    )
+    print(f"    [debug] pageProps keys: {list(props.keys())[:10]}, results: {len(results)}")
+    for item in results:
+        listing = _extract_listing(item, suburb)
+        if listing:
+            listings.append(listing)
+    return listings
+
+
+def _parse_jsonld(html: str, suburb: str) -> list:
+    listings = []
+    for m in re.finditer(
+        r'<script[^>]+type=["\']application/ld\+json["\'][^>]*>(.*?)</script>', html, re.DOTALL
+    ):
+        try:
+            data = json.loads(m.group(1))
+            items = data if isinstance(data, list) else [data]
+            for item in items:
+                listing = _extract_listing(item, suburb)
+                if listing:
+                    listings.append(listing)
+        except json.JSONDecodeError:
+            pass
+    return listings
+
+
+def _extract_listing(item, suburb):
+    if not isinstance(item, dict):
+        return None
+    prop_type = (
+        item.get("propertyType") or
+        item.get("property", {}).get("propertyType") or
+        item.get("@type") or ""
+    ).lower()
+    if any(t in prop_type for t in ["apartment", "unit", "flat", "townhouse"]):
+        return None
+    price_raw = (
+        item.get("price") or item.get("soldPrice") or
+        item.get("priceDetails", {}).get("soldPrice") or
+        item.get("listing", {}).get("price") or 0
+    )
+    if isinstance(price_raw, str):
+        price_raw = re.sub(r"[^\d]", "", price_raw)
+        price_raw = int(price_raw) if price_raw else 0
+    price = int(price_raw) if price_raw else 0
+    if price < 100_000 or price > 15_000_000:
+        return None
+    addr = (
+        item.get("address") or
+        item.get("property", {}).get("address") or
+        item.get("listing", {}).get("propertyDetails", {}).get("displayableAddress") or {}
+    )
+    if isinstance(addr, dict):
+        street = addr.get("street") or addr.get("streetAddress") or ""
+        sub    = addr.get("suburb") or addr.get("addressLocality") or suburb
+        state  = addr.get("state") or addr.get("addressRegion") or "VIC"
+        address_str = f"{street}, {sub} {state}".strip(", ")
+    elif isinstance(addr, str):
+        address_str = addr
+    else:
+        return None
+    if not address_str or len(address_str) < 5:
+        return None
+    land_size = (
+        item.get("landSize") or
+        item.get("property", {}).get("landSize") or
+        item.get("propertyDetails", {}).get("landArea") or None
+    )
+    return {"address": address_str, "price": price, "land_m2": float(land_size) if land_size else None}
+
 
 def load_raw_listings() -> list:
-    """
-    Load house sale listings from northbury/data/raw_listings.json.
-
-    Expected format (each item):
-      {
-        "address":       "12 Smith St, Thornbury VIC 3071",   # required
-        "price":         1250000,                              # required
-        "land_m2":       420,                                  # optional
-        "property_type": "house"                               # optional, filters out apartments/units
-      }
-
-    To generate this file, run your local REA scraper and save results there.
-    """
+    """Load and validate northbury/data/raw_listings.json."""
     if not RAW_FILE.exists():
-        print(f"\n  raw_listings.json not found at {RAW_FILE}")
-        print("  → Run your local REA scraper and save results to northbury/data/raw_listings.json")
-        print("  → Format: [{\"address\": \"...\", \"price\": 1250000, \"land_m2\": 420}, ...]")
-        print("  Continuing without price/lot data.\n")
         return []
-
     with open(RAW_FILE) as f:
         raw = json.load(f)
-
     valid = []
     skipped = 0
     for item in raw:
         if not isinstance(item, dict):
             skipped += 1
             continue
-
-        # Filter property type
         prop_type = (item.get("property_type") or item.get("type") or "house").lower()
         if any(t in prop_type for t in ["apartment", "unit", "flat", "townhouse"]):
             skipped += 1
             continue
-
-        # Validate price
         price = item.get("price", 0)
         if isinstance(price, str):
             price = int(re.sub(r"[^\d]", "", price) or "0")
@@ -174,26 +328,43 @@ def load_raw_listings() -> list:
         if price < 100_000 or price > 15_000_000:
             skipped += 1
             continue
-
-        # Validate address
         addr = str(item.get("address", "")).strip()
         if len(addr) < 5:
             skipped += 1
             continue
-
         land_m2 = item.get("land_m2") or item.get("land_size")
         try:
             land_m2 = float(land_m2) if land_m2 else None
         except (TypeError, ValueError):
             land_m2 = None
-
         valid.append({"address": addr, "price": price, "land_m2": land_m2})
-
     print(f"  Loaded {len(valid)} valid listings from raw_listings.json ({skipped} skipped)")
     return valid
 
 
-# ── Step 3: Geocode addresses ───────────────────────────────────────────────
+def get_listings() -> list:
+    """Use raw_listings.json if present, otherwise scrape REA."""
+    if RAW_FILE.exists():
+        print(f"  Found raw_listings.json — loading instead of scraping")
+        return load_raw_listings()
+
+    print("  raw_listings.json not found — scraping realestate.com.au …")
+    print("  (pip install curl-cffi  for best Cloudflare bypass)")
+    all_listings = []
+    for target in SUBURB_TARGETS:
+        results = scrape_rea_listings(target["suburb"], target["postcode"])
+        all_listings.extend(results)
+    print(f"  Total scraped: {len(all_listings)} listings")
+
+    if all_listings:
+        with open(RAW_FILE, "w") as f:
+            json.dump(all_listings, f, indent=2)
+        print(f"  Saved to {RAW_FILE} for reuse")
+
+    return all_listings
+
+
+# ── Step 3: Geocode addresses ───────────────────────────────────────────────────
 
 def geocode_listings(listings: list) -> list:
     try:
@@ -381,7 +552,7 @@ def fetch_vicmap_lot_sizes(sa1_geojson: dict) -> dict:
     return lot_sizes
 
 
-# ── Step 6: Merge and write ────────────────────────────────────────────────────────
+# ── Step 6: Merge and write ──────────────────────────────────────────────────────
 
 def merge_and_write(
     sa1_geojson: dict,
@@ -437,7 +608,7 @@ def merge_and_write(
     print(f"  With lots:  {n_lots}")
 
 
-# ── Main ──────────────────────────────────────────────────────────────────────────────────
+# ── Main ─────────────────────────────────────────────────────────────────────────────────
 
 def main():
     print("=" * 60)
@@ -447,7 +618,7 @@ def main():
     sa1_geojson = fetch_sa1_boundaries()
 
     print("\nLoading house listings …")
-    listings = load_raw_listings()
+    listings = get_listings()
 
     geocoded = []
     prices_by_sa1 = {}
