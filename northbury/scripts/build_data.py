@@ -11,7 +11,7 @@ Run:
   pip3 install requests pandas geopandas shapely geopy
   python3 northbury/scripts/build_data.py
 
-Requires northbury/data/raw_listings.json -- paste house-only sale data as a JSON array:
+Requires northbury/data/raw_listings.json — paste house-only sale data as a JSON array:
   [{"address": "98 Darebin Rd, Northcote VIC 3070", "price": 1316000, "land_m2": null}, ...]
 
 To add more data: append entries to raw_listings.json and re-run. Supports both
@@ -112,7 +112,7 @@ def load_raw_listings() -> list:
         sys.exit(
             f"ERROR: {RAW_FILE} not found.\n"
             "Add house sale data as a JSON array and re-run.\n"
-            'Format: [{"address": "12 Smith St, Northcote VIC 3070", "price": 1200000, "land_m2": null}]'
+            '{"address": "12 Smith St, Northcote VIC 3070", "price": 1200000, "land_m2": null}'
         )
     with open(RAW_FILE) as f:
         raw = json.load(f)
@@ -251,26 +251,48 @@ def _wfs_discover_parcel_layers(base_url: str) -> list:
     return []
 
 
+_WFS_PAGE = 2000  # features per page (safe for most WFS servers)
+
+
 def _wfs_get_features(base_url: str, layer: str, bbox_v1: str, bbox_v2: str) -> list:
-    attempts = [
-        {"version": "1.1.0", "typeName": layer,  "maxFeatures": 3000, "BBOX": bbox_v1,
-         "outputFormat": "application/json", "srsName": "EPSG:4326"},
-        {"version": "2.0.0", "typeNames": layer, "count": 3000,       "BBOX": bbox_v2,
-         "outputFormat": "application/json"},
-    ]
-    for params in attempts:
+    # Try WFS 2.0.0 with pagination first (startIndex is standard in 2.0.0)
+    all_features: list = []
+    offset = 0
+    while True:
         try:
-            r = requests.get(
-                base_url,
-                params={"service": "WFS", "request": "GetFeature", **params},
-                timeout=30,
-            )
+            r = requests.get(base_url, params={
+                "service": "WFS", "request": "GetFeature",
+                "version": "2.0.0", "typeNames": layer,
+                "count": _WFS_PAGE, "startIndex": offset,
+                "BBOX": bbox_v2, "outputFormat": "application/json",
+            }, timeout=60)
             if r.status_code == 200:
-                data = r.json()
-                if data.get("features"):
-                    return data["features"]
+                feats = r.json().get("features", [])
+                all_features.extend(feats)
+                if len(feats) < _WFS_PAGE:
+                    break  # last page
+                offset += _WFS_PAGE
+            else:
+                break
         except Exception:
-            pass
+            break
+    if all_features:
+        return all_features
+
+    # Fallback: WFS 1.1.0 with a high limit (no standard pagination)
+    try:
+        r = requests.get(base_url, params={
+            "service": "WFS", "request": "GetFeature",
+            "version": "1.1.0", "typeName": layer,
+            "maxFeatures": 10000, "BBOX": bbox_v1,
+            "outputFormat": "application/json", "srsName": "EPSG:4326",
+        }, timeout=60)
+        if r.status_code == 200:
+            feats = r.json().get("features", [])
+            if feats:
+                return feats
+    except Exception:
+        pass
     return []
 
 
@@ -311,7 +333,7 @@ def fetch_vicmap_lot_sizes(sa1_geojson: dict) -> dict:
                         "geometry": bbox_esri, "geometryType": "esriGeometryEnvelope",
                         "spatialRel": "esriSpatialRelIntersects",
                         "inSR": "4326", "outSR": "4326", "outFields": "*",
-                        "returnGeometry": "true", "f": "geojson", "resultRecordCount": 2000,
+                        "returnGeometry": "true", "f": "geojson", "resultRecordCount": 5000,
                     }, timeout=30)
                     if r.status_code == 200:
                         feats = r.json().get("features", [])
@@ -338,8 +360,15 @@ def fetch_vicmap_lot_sizes(sa1_geojson: dict) -> dict:
         "SA1_CODE_2021",
     )
     sa1_proj = sa1_proj.rename(columns={sa1_code_col: "sa1_code"})
+    # Join on parcel centroids — avoids boundary-parcel ambiguity; each centroid
+    # falls in exactly one SA1 polygon (strict within is correct for points).
+    centroids_gdf = gpd.GeoDataFrame(
+        parcels_proj[["area_m2"]],
+        geometry=parcels_proj.geometry.centroid,
+        crs="EPSG:7855",
+    )
     joined = gpd.sjoin(
-        parcels_proj[["area_m2", "geometry"]],
+        centroids_gdf,
         sa1_proj[["sa1_code", "geometry"]],
         how="left", predicate="within",
     )
