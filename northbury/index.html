@@ -70,9 +70,15 @@
     }
 
     /* ── Map ── */
-    #map {
+    .map-wrap {
+      position: relative;
       flex: 1;
       min-height: 0;
+    }
+
+    #map {
+      position: absolute;
+      inset: 0;
     }
 
     /* ── Legend (Leaflet custom control) ── */
@@ -189,7 +195,7 @@
     <div class="layer-toggle" id="layer-toggle"></div>
   </header>
 
-  <div style="position:relative; flex:1; min-height:0;">
+  <div class="map-wrap">
     <div id="map"></div>
     <div id="no-data-banner">
       <h2>Data not yet generated</h2>
