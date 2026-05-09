@@ -180,6 +180,14 @@ def load_raw_listings() -> list:
 # -- Step 3: Geocode addresses ------------------------------------------------
 
 def geocode_listings(listings: list) -> list:
+    cache_path = OUT_DIR / "geocode_cache.json"
+    cache: dict = {}
+    if cache_path.exists():
+        try:
+            with open(cache_path) as f:
+                cache = json.load(f)
+        except Exception:
+            pass
     try:
         from geopy.geocoders import Nominatim
         from geopy.extra.rate_limiter import RateLimiter
@@ -187,22 +195,39 @@ def geocode_listings(listings: list) -> list:
         print("  geopy not installed -- skipping geocoding (pip3 install geopy)")
         return []
     geolocator = Nominatim(user_agent="northbury-map/1.0")
-    geocode = RateLimiter(geolocator.geocode, min_delay_seconds=1.1)
-    geocoded = []
-    print(f"  Geocoding {len(listings)} listings (1 req/sec) ...")
+    geocode    = RateLimiter(geolocator.geocode, min_delay_seconds=1.1)
+    geocoded   = []
+    new_count  = 0
+    hit_count  = 0
+    print(f"  Geocoding {len(listings)} listings ...")
     for i, listing in enumerate(listings):
-        query = listing["address"]
-        if "VIC" not in query.upper() and "VICTORIA" not in query.upper():
-            query += ", Melbourne, VIC, Australia"
-        try:
-            loc = geocode(query, exactly_one=True, timeout=10)
-            if loc:
-                geocoded.append({**listing, "lat": loc.latitude, "lng": loc.longitude})
-        except Exception:
-            pass
-        if (i + 1) % 20 == 0:
-            print(f"    {i+1}/{len(listings)} geocoded ...")
-    print(f"  Geocoded {len(geocoded)}/{len(listings)} listings")
+        addr  = listing["address"]
+        query = addr if ("VIC" in addr.upper() or "VICTORIA" in addr.upper()) \
+                     else addr + ", Melbourne, VIC, Australia"
+        if query in cache:
+            entry = cache[query]
+            if entry:
+                geocoded.append({**listing, "lat": entry["lat"], "lng": entry["lng"]})
+                hit_count += 1
+        else:
+            try:
+                loc = geocode(query, exactly_one=True, timeout=10)
+                if loc:
+                    cache[query] = {"lat": loc.latitude, "lng": loc.longitude}
+                    geocoded.append({**listing, "lat": loc.latitude, "lng": loc.longitude})
+                    new_count += 1
+                else:
+                    cache[query] = None   # mark as failed so we don't retry each run
+            except Exception:
+                pass
+            if (i + 1) % 20 == 0:
+                print(f"    {i+1}/{len(listings)} processed ...")
+    try:
+        with open(cache_path, "w") as f:
+            json.dump(cache, f, indent=2)
+    except Exception as e:
+        print(f"  Warning: could not save geocode cache: {e}")
+    print(f"  Geocoded {len(geocoded)}/{len(listings)} ({new_count} new, {hit_count} from cache)")
     return geocoded
 
 
