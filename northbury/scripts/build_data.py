@@ -14,7 +14,8 @@ Run:
 Listings source (in priority order):
   1. northbury/data/raw_listings.json  — if present, used directly (skips scraping)
      Format: [{"address": "12 Smith St, Thornbury VIC 3071", "price": 1250000, "land_m2": 420}, ...]
-  2. realestate.com.au scraper         — tries 5 curl-cffi impersonations vs Cloudflare
+  2. sqmresearch.com.au                — tried first (no Cloudflare)
+  3. realestate.com.au                 — fallback, tries 5 curl-cffi impersonations vs Cloudflare
 """
 
 import json
@@ -116,13 +117,10 @@ _HEADERS = {
     "Accept-Encoding": "gzip, deflate, br",
 }
 
-# curl-cffi impersonations to try in order — Chrome, Firefox, Safari have different
-# TLS + HTTP/2 fingerprints; Cloudflare JS challenge behaviour varies across them
 _CF_IMPERSONATIONS = ["chrome124", "firefox133", "safari17_0", "safari18_0", "chrome116"]
 
 
 def _cf_blocked(html: str) -> bool:
-    """True if html looks like a Cloudflare challenge page (no <title> or CF title)."""
     if not html or len(html) < 1000:
         return True
     title_m = re.search(r"<title>(.*?)</title>", html, re.I)
@@ -154,9 +152,9 @@ def _fetch_url_cloudscraper(url: str) -> str:
 
 
 def _fetch_rea_page(url: str) -> tuple:
-    """Try all impersonations. Returns (html, method_name) or ('', None) if all blocked."""
+    """Try all CF impersonations. Returns (html, method) or ('', None)."""
     try:
-        from curl_cffi import requests as cffi_requests  # noqa: F401  (just checking import)
+        from curl_cffi import requests as cffi_requests  # noqa: F401
         for imp in _CF_IMPERSONATIONS:
             html = _fetch_url_cffi(url, imp)
             if not _cf_blocked(html):
@@ -168,6 +166,138 @@ def _fetch_rea_page(url: str) -> tuple:
     if not _cf_blocked(html):
         return html, "cloudscraper"
     return "", None
+
+
+# ── SQM Research scraper ─────────────────────────────────────────────────────────────
+
+def scrape_sqm_listings(postcode: str, suburb: str) -> list:
+    """Scrape sold house listings from sqmresearch.com.au (no Cloudflare)."""
+    base_url = f"https://sqmresearch.com.au/property/sold-properties?postcode={postcode}"
+    session = requests.Session()
+    session.headers.update(_HEADERS)
+    listings = []
+    print(f"  Scraping SQM Research for {suburb} ({postcode}) …")
+
+    for page_num in range(1, 40):
+        url = base_url if page_num == 1 else f"{base_url}&page={page_num}"
+        try:
+            r = session.get(url, timeout=30)
+            html = r.text if r.status_code == 200 else ""
+        except Exception as e:
+            print(f"    Page {page_num}: fetch error ({e})")
+            break
+
+        if _cf_blocked(html):
+            html, _ = _fetch_rea_page(url)
+
+        if not html:
+            print(f"    Page {page_num}: no response")
+            break
+
+        if page_num == 1:
+            title_m = re.search(r"<title>(.*?)</title>", html, re.I)
+            print(f"    Page 1: {len(html)} bytes, title={title_m.group(1)!r if title_m else '?'}")
+
+        found = _parse_sqm_page(html, suburb)
+        if not found:
+            if page_num == 1:
+                snippet = re.sub(r"\s+", " ", html[:2000])
+                print(f"    [debug] no listings on page 1. HTML snippet:\n    {snippet[:800]}")
+            break
+
+        listings.extend(found)
+        print(f"    Page {page_num}: {len(found)} listings (total: {len(listings)})")
+
+        if not re.search(r"page=" + str(page_num + 1), html):
+            break
+
+        time.sleep(1)
+
+    return listings
+
+
+def _parse_sqm_page(html: str, suburb: str) -> list:
+    """Parse a SQM Research sold-properties page. Tries pandas read_html then regex."""
+    listings = []
+
+    try:
+        import pandas as pd
+        from io import StringIO
+
+        tables = pd.read_html(StringIO(html))
+        for df in tables:
+            cols_norm = {str(c).lower().strip(): str(c) for c in df.columns}
+            has_price = any("price" in k for k in cols_norm)
+            has_addr  = any(k in cols_norm for k in ("address", "street", "property", "location"))
+            if not (has_price or has_addr):
+                continue
+            print(f"    [debug] SQM table cols: {list(df.columns)}, rows: {len(df)}")
+            for _, row in df.iterrows():
+                item = _extract_sqm_row(row, cols_norm, suburb)
+                if item:
+                    listings.append(item)
+        if listings:
+            return listings
+    except ImportError:
+        pass
+    except Exception as e:
+        print(f"    [debug] read_html: {e}")
+
+    for m in re.finditer(r'(\{[^<>]{20,}?"(?:price|sold_price|salePrice)"[^<>]{5,}\})', html):
+        try:
+            item = json.loads(m.group(1))
+            listing = _extract_listing(item, suburb)
+            if listing:
+                listings.append(listing)
+        except json.JSONDecodeError:
+            pass
+
+    return listings
+
+
+def _extract_sqm_row(row, cols_norm: dict, suburb: str):
+    """Extract address+price from a pandas DataFrame row from a SQM table."""
+    price = 0
+    for key in ("sold price", "price", "sale price", "sold_price", "last sale"):
+        if key in cols_norm:
+            val = row[cols_norm[key]]
+            if isinstance(val, str):
+                digits = re.sub(r"[^\d]", "", val)
+                price = int(digits) if digits else 0
+            elif isinstance(val, (int, float)) and val == val:  # not NaN
+                price = int(val)
+            break
+    if price < 100_000 or price > 15_000_000:
+        return None
+
+    addr = ""
+    for key in ("address", "street address", "property", "location", "street"):
+        if key in cols_norm:
+            addr = str(row[cols_norm[key]]).strip()
+            if addr.lower() not in ("nan", "none", "-", ""):
+                break
+    if not addr or len(addr) < 4:
+        return None
+    if suburb.lower() not in addr.lower():
+        addr = f"{addr}, {suburb} VIC"
+
+    prop_type = "house"
+    for key in ("type", "property type", "dwelling type", "property_type"):
+        if key in cols_norm:
+            prop_type = str(row[cols_norm[key]]).lower()
+            break
+    if any(t in prop_type for t in ["unit", "apartment", "flat", "townhouse", "u/", "apt"]):
+        return None
+
+    land_m2 = None
+    for key in ("land", "land size", "land area", "lot size", "land (m²)", "land(m2)"):
+        if key in cols_norm:
+            nums = re.findall(r"[\d.]+", str(row[cols_norm[key]]))
+            if nums:
+                land_m2 = float(nums[0])
+            break
+
+    return {"address": addr, "price": price, "land_m2": land_m2}
 
 
 def scrape_rea_listings(suburb: str, postcode: str) -> list:
@@ -281,7 +411,6 @@ def _extract_listing(item, suburb):
 
 
 def load_raw_listings() -> list:
-    """Load and validate northbury/data/raw_listings.json."""
     if not RAW_FILE.exists():
         return []
     with open(RAW_FILE) as f:
@@ -318,15 +447,22 @@ def load_raw_listings() -> list:
 
 
 def get_listings() -> list:
-    """Use raw_listings.json if present, otherwise scrape REA."""
+    """Use raw_listings.json if present; otherwise try SQM Research then REA."""
     if RAW_FILE.exists():
         print(f"  Found raw_listings.json — loading instead of scraping")
         return load_raw_listings()
-    print("  raw_listings.json not found — scraping realestate.com.au …")
+
     all_listings = []
     for target in SUBURB_TARGETS:
-        results = scrape_rea_listings(target["suburb"], target["postcode"])
+        results = scrape_sqm_listings(target["postcode"], target["suburb"])
         all_listings.extend(results)
+
+    if not all_listings:
+        print("  SQM returned nothing — trying realestate.com.au …")
+        for target in SUBURB_TARGETS:
+            results = scrape_rea_listings(target["suburb"], target["postcode"])
+            all_listings.extend(results)
+
     print(f"  Total scraped: {len(all_listings)} listings")
     if all_listings:
         with open(RAW_FILE, "w") as f:
@@ -367,7 +503,6 @@ def geocode_listings(listings: list) -> list:
 # ── Step 4: Assign to SA1, extract prices + lot sizes ────────────────────────
 
 def assign_to_sa1(listings_geocoded: list, sa1_geojson: dict) -> tuple:
-    """Returns (prices_by_sa1, lot_sizes_from_listings)."""
     try:
         import geopandas as gpd
         import pandas as pd
