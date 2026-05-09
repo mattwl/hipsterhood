@@ -180,6 +180,14 @@ def load_raw_listings() -> list:
 # -- Step 3: Geocode addresses ------------------------------------------------
 
 def geocode_listings(listings: list) -> list:
+    cache_path = OUT_DIR / "geocode_cache.json"
+    cache: dict = {}
+    if cache_path.exists():
+        try:
+            with open(cache_path) as f:
+                cache = json.load(f)
+        except Exception:
+            pass
     try:
         from geopy.geocoders import Nominatim
         from geopy.extra.rate_limiter import RateLimiter
@@ -187,22 +195,39 @@ def geocode_listings(listings: list) -> list:
         print("  geopy not installed -- skipping geocoding (pip3 install geopy)")
         return []
     geolocator = Nominatim(user_agent="northbury-map/1.0")
-    geocode = RateLimiter(geolocator.geocode, min_delay_seconds=1.1)
-    geocoded = []
-    print(f"  Geocoding {len(listings)} listings (1 req/sec) ...")
+    geocode    = RateLimiter(geolocator.geocode, min_delay_seconds=1.1)
+    geocoded   = []
+    new_count  = 0
+    hit_count  = 0
+    print(f"  Geocoding {len(listings)} listings ...")
     for i, listing in enumerate(listings):
-        query = listing["address"]
-        if "VIC" not in query.upper() and "VICTORIA" not in query.upper():
-            query += ", Melbourne, VIC, Australia"
-        try:
-            loc = geocode(query, exactly_one=True, timeout=10)
-            if loc:
-                geocoded.append({**listing, "lat": loc.latitude, "lng": loc.longitude})
-        except Exception:
-            pass
-        if (i + 1) % 20 == 0:
-            print(f"    {i+1}/{len(listings)} geocoded ...")
-    print(f"  Geocoded {len(geocoded)}/{len(listings)} listings")
+        addr  = listing["address"]
+        query = addr if ("VIC" in addr.upper() or "VICTORIA" in addr.upper()) \
+                     else addr + ", Melbourne, VIC, Australia"
+        if query in cache:
+            entry = cache[query]
+            if entry:
+                geocoded.append({**listing, "lat": entry["lat"], "lng": entry["lng"]})
+                hit_count += 1
+        else:
+            try:
+                loc = geocode(query, exactly_one=True, timeout=10)
+                if loc:
+                    cache[query] = {"lat": loc.latitude, "lng": loc.longitude}
+                    geocoded.append({**listing, "lat": loc.latitude, "lng": loc.longitude})
+                    new_count += 1
+                else:
+                    cache[query] = None   # mark as failed so we don't retry each run
+            except Exception:
+                pass
+            if (i + 1) % 20 == 0:
+                print(f"    {i+1}/{len(listings)} processed ...")
+    try:
+        with open(cache_path, "w") as f:
+            json.dump(cache, f, indent=2)
+    except Exception as e:
+        print(f"  Warning: could not save geocode cache: {e}")
+    print(f"  Geocoded {len(geocoded)}/{len(listings)} ({new_count} new, {hit_count} from cache)")
     return geocoded
 
 
@@ -282,8 +307,9 @@ _WFS_LAYER_CANDIDATES = [
     "PARCEL_MP",
 ]
 
-# Layers that match "PARCEL" but are title/strata views — skip if a land-parcel layer works.
-_WFS_SKIP = {"parcel_view", "parcel_property", "cl_tenure_parcel"}
+# Only skip internal/administrative views that have no useful geometry.
+# parcel_view and parcel_property are valid fallbacks when v_parcel_mp is unavailable.
+_WFS_SKIP = {"cl_tenure_parcel"}
 
 
 def _wfs_discover_parcel_layers(base_url: str) -> list:
@@ -404,11 +430,9 @@ def _build_parcels_gdf(sa1_geojson: dict):
     parcels_gdf  = gpd.GeoDataFrame.from_features(parcels_features, crs="EPSG:4326")
     parcels_proj = parcels_gdf.to_crs("EPSG:7855").copy()
     parcels_proj["area_m2"] = parcels_proj.geometry.area
-    before = len(parcels_proj)
-    parcels_proj = parcels_proj[
-        (parcels_proj["area_m2"] >= 50) & (parcels_proj["area_m2"] <= 5000)
-    ].reset_index(drop=True)
-    print(f"  After area filter (50–5000 m²): {len(parcels_proj)} of {before} parcels")
+    # Keep all parcels here — area filtering applied later in compute_sa1_lot_sizes
+    # so all polygons are available for the per-listing point-in-polygon join.
+    print(f"  {len(parcels_proj)} parcel features ready (unfiltered)")
     return parcels_proj
 
 
@@ -428,9 +452,10 @@ def enrich_with_parcel_sizes(geocoded: list, parcels_proj) -> list:
     joined = gpd.sjoin(
         pts[["_idx", "geometry"]],
         parcels_proj[["area_m2", "geometry"]],
-        how="left", predicate="within",
+        how="left", predicate="intersects",
     )
-    joined = joined.drop_duplicates(subset="_idx", keep="first")
+    # Keep the largest-area match per listing (picks the land lot over a tiny neighbour boundary)
+    joined = joined.sort_values("area_m2", ascending=False).drop_duplicates(subset="_idx", keep="first")
     area_by_idx = dict(zip(joined["_idx"], joined["area_m2"]))
     enriched = []
     filled = 0
@@ -459,16 +484,31 @@ def compute_sa1_lot_sizes(parcels_proj, sa1_geojson: dict) -> tuple:
         "SA1_CODE_2021",
     )
     sa1_proj = sa1_proj.rename(columns={sa1_code_col: "sa1_code"})
+    # Filter to residential-lot sizes before computing SA1 medians.
+    # This excludes tiny apartment strata polygons (<100 m²) and very large
+    # commercial/industrial parcels (>5000 m²) from the choropleth statistics,
+    # while keeping all parcel geometries in parcels_proj for the per-listing join.
+    residential = parcels_proj[
+        (parcels_proj["area_m2"] >= 100) & (parcels_proj["area_m2"] <= 5000)
+    ].reset_index(drop=True)
+    print(f"  Residential parcels (100–5000 m²): {len(residential)} of {len(parcels_proj)}")
     centroids = gpd.GeoDataFrame(
-        parcels_proj[["area_m2"]],
-        geometry=parcels_proj.geometry.centroid,
+        residential[["area_m2"]],
+        geometry=residential.geometry.centroid,
         crs="EPSG:7855",
     )
     joined = gpd.sjoin(centroids, sa1_proj[["sa1_code", "geometry"]],
                        how="left", predicate="within")
-    # Attach sa1_code back to the parcel GeoDataFrame (by row index)
+    # Attach sa1_code back to the FULL parcel GeoDataFrame for lots.geojson export
     parcels_out = parcels_proj.copy()
-    parcels_out["sa1_code"] = joined["sa1_code"].reindex(range(len(parcels_proj))).values
+    cent_all = gpd.GeoDataFrame(
+        parcels_proj[["area_m2"]],
+        geometry=parcels_proj.geometry.centroid,
+        crs="EPSG:7855",
+    )
+    joined_all = gpd.sjoin(cent_all, sa1_proj[["sa1_code", "geometry"]],
+                           how="left", predicate="within")
+    parcels_out["sa1_code"] = joined_all["sa1_code"].reindex(range(len(parcels_proj))).values
     lot_sizes = {}
     for sa1_code, group in joined.groupby("sa1_code"):
         lot_sizes[str(sa1_code)] = {
@@ -498,8 +538,8 @@ def compute_hedonic_prices(tagged_geocoded: list) -> dict:
         and (l.get("land_m2") or 0) > 50
         and l.get("sa1_code")
     ]
-    if len(complete) < 20:
-        print(f"  Too few complete listings ({len(complete)}) for hedonic regression — need 20+")
+    if len(complete) < 10:
+        print(f"  Too few complete listings ({len(complete)}) for hedonic regression — need 10+")
         return {}
 
     log_prices = np.array([np.log(l["price"]) for l in complete])
@@ -533,7 +573,7 @@ def compute_hedonic_prices(tagged_geocoded: list) -> dict:
 
     hedonic = {}
     for sa1_code, res in sa1_residuals.items():
-        if len(res) >= 3:
+        if len(res) >= 2:
             hedonic[sa1_code] = {
                 "hedonic_price": int(np.exp(base_log_price + float(np.mean(res)))),
                 "hedonic_count": len(res),
@@ -559,6 +599,10 @@ def write_lots_geojson(parcels_proj, out_dir: Path):
         import geopandas as gpd
     except ImportError:
         return
+    # Only write residential-sized lots to keep file small
+    parcels_proj = parcels_proj[
+        (parcels_proj["area_m2"] >= 100) & (parcels_proj["area_m2"] <= 5000)
+    ].reset_index(drop=True)
     cols = ["area_m2", "geometry"]
     if "sa1_code" in parcels_proj.columns:
         cols = ["sa1_code"] + cols
