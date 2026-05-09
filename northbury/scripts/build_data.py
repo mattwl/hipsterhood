@@ -449,12 +449,16 @@ def enrich_with_parcel_sizes(geocoded: list, parcels_proj) -> list:
         geometry=[Point(l["lng"], l["lat"]) for l in geocoded],
         crs="EPSG:4326",
     ).to_crs("EPSG:7855")
+    # Nominatim often geocodes to the road centreline (~12m outside the parcel).
+    # A 25m buffer bridges that gap so the point's disk overlaps the property polygon.
+    pts_buf = pts.copy()
+    pts_buf["geometry"] = pts_buf["geometry"].buffer(25)
     joined = gpd.sjoin(
-        pts[["_idx", "geometry"]],
+        pts_buf[["_idx", "geometry"]],
         parcels_proj[["area_m2", "geometry"]],
         how="left", predicate="intersects",
     )
-    # Keep the largest-area match per listing (picks the land lot over a tiny neighbour boundary)
+    # When the buffer touches multiple parcels, prefer the largest (house lot beats strata unit)
     joined = joined.sort_values("area_m2", ascending=False).drop_duplicates(subset="_idx", keep="first")
     area_by_idx = dict(zip(joined["_idx"], joined["area_m2"]))
     enriched = []
