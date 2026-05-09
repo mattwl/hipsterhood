@@ -282,8 +282,9 @@ _WFS_LAYER_CANDIDATES = [
     "PARCEL_MP",
 ]
 
-# Layers that match "PARCEL" but are title/strata views — skip if a land-parcel layer works.
-_WFS_SKIP = {"parcel_view", "parcel_property", "cl_tenure_parcel"}
+# Only skip internal/administrative views that have no useful geometry.
+# parcel_view and parcel_property are valid fallbacks when v_parcel_mp is unavailable.
+_WFS_SKIP = {"cl_tenure_parcel"}
 
 
 def _wfs_discover_parcel_layers(base_url: str) -> list:
@@ -404,11 +405,9 @@ def _build_parcels_gdf(sa1_geojson: dict):
     parcels_gdf  = gpd.GeoDataFrame.from_features(parcels_features, crs="EPSG:4326")
     parcels_proj = parcels_gdf.to_crs("EPSG:7855").copy()
     parcels_proj["area_m2"] = parcels_proj.geometry.area
-    before = len(parcels_proj)
-    parcels_proj = parcels_proj[
-        (parcels_proj["area_m2"] >= 50) & (parcels_proj["area_m2"] <= 5000)
-    ].reset_index(drop=True)
-    print(f"  After area filter (50–5000 m²): {len(parcels_proj)} of {before} parcels")
+    # Keep all parcels here — area filtering applied later in compute_sa1_lot_sizes
+    # so all polygons are available for the per-listing point-in-polygon join.
+    print(f"  {len(parcels_proj)} parcel features ready (unfiltered)")
     return parcels_proj
 
 
@@ -428,9 +427,10 @@ def enrich_with_parcel_sizes(geocoded: list, parcels_proj) -> list:
     joined = gpd.sjoin(
         pts[["_idx", "geometry"]],
         parcels_proj[["area_m2", "geometry"]],
-        how="left", predicate="within",
+        how="left", predicate="intersects",
     )
-    joined = joined.drop_duplicates(subset="_idx", keep="first")
+    # Keep the largest-area match per listing (picks the land lot over a tiny neighbour boundary)
+    joined = joined.sort_values("area_m2", ascending=False).drop_duplicates(subset="_idx", keep="first")
     area_by_idx = dict(zip(joined["_idx"], joined["area_m2"]))
     enriched = []
     filled = 0
@@ -459,16 +459,31 @@ def compute_sa1_lot_sizes(parcels_proj, sa1_geojson: dict) -> tuple:
         "SA1_CODE_2021",
     )
     sa1_proj = sa1_proj.rename(columns={sa1_code_col: "sa1_code"})
+    # Filter to residential-lot sizes before computing SA1 medians.
+    # This excludes tiny apartment strata polygons (<100 m²) and very large
+    # commercial/industrial parcels (>5000 m²) from the choropleth statistics,
+    # while keeping all parcel geometries in parcels_proj for the per-listing join.
+    residential = parcels_proj[
+        (parcels_proj["area_m2"] >= 100) & (parcels_proj["area_m2"] <= 5000)
+    ].reset_index(drop=True)
+    print(f"  Residential parcels (100–5000 m²): {len(residential)} of {len(parcels_proj)}")
     centroids = gpd.GeoDataFrame(
-        parcels_proj[["area_m2"]],
-        geometry=parcels_proj.geometry.centroid,
+        residential[["area_m2"]],
+        geometry=residential.geometry.centroid,
         crs="EPSG:7855",
     )
     joined = gpd.sjoin(centroids, sa1_proj[["sa1_code", "geometry"]],
                        how="left", predicate="within")
-    # Attach sa1_code back to the parcel GeoDataFrame (by row index)
+    # Attach sa1_code back to the FULL parcel GeoDataFrame for lots.geojson export
     parcels_out = parcels_proj.copy()
-    parcels_out["sa1_code"] = joined["sa1_code"].reindex(range(len(parcels_proj))).values
+    cent_all = gpd.GeoDataFrame(
+        parcels_proj[["area_m2"]],
+        geometry=parcels_proj.geometry.centroid,
+        crs="EPSG:7855",
+    )
+    joined_all = gpd.sjoin(cent_all, sa1_proj[["sa1_code", "geometry"]],
+                           how="left", predicate="within")
+    parcels_out["sa1_code"] = joined_all["sa1_code"].reindex(range(len(parcels_proj))).values
     lot_sizes = {}
     for sa1_code, group in joined.groupby("sa1_code"):
         lot_sizes[str(sa1_code)] = {
@@ -498,8 +513,8 @@ def compute_hedonic_prices(tagged_geocoded: list) -> dict:
         and (l.get("land_m2") or 0) > 50
         and l.get("sa1_code")
     ]
-    if len(complete) < 20:
-        print(f"  Too few complete listings ({len(complete)}) for hedonic regression — need 20+")
+    if len(complete) < 10:
+        print(f"  Too few complete listings ({len(complete)}) for hedonic regression — need 10+")
         return {}
 
     log_prices = np.array([np.log(l["price"]) for l in complete])
@@ -533,7 +548,7 @@ def compute_hedonic_prices(tagged_geocoded: list) -> dict:
 
     hedonic = {}
     for sa1_code, res in sa1_residuals.items():
-        if len(res) >= 3:
+        if len(res) >= 2:
             hedonic[sa1_code] = {
                 "hedonic_price": int(np.exp(base_log_price + float(np.mean(res)))),
                 "hedonic_count": len(res),
@@ -559,6 +574,10 @@ def write_lots_geojson(parcels_proj, out_dir: Path):
         import geopandas as gpd
     except ImportError:
         return
+    # Only write residential-sized lots to keep file small
+    parcels_proj = parcels_proj[
+        (parcels_proj["area_m2"] >= 100) & (parcels_proj["area_m2"] <= 5000)
+    ].reset_index(drop=True)
     cols = ["area_m2", "geometry"]
     if "sa1_code" in parcels_proj.columns:
         cols = ["sa1_code"] + cols
