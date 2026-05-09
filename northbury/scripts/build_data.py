@@ -310,29 +310,28 @@ def _wfs_get_features(base_url: str, layer: str, bbox_v1: str, bbox_v2: str) -> 
     return []
 
 
-def fetch_vicmap_lot_sizes(sa1_geojson: dict) -> dict:
+def _build_parcels_gdf(sa1_geojson: dict):
+    """Fetch Vicmap parcels and return a GeoDataFrame projected to EPSG:7855,
+    filtered to residential-lot sizes (50–5000 m²), or None on failure."""
     try:
         import geopandas as gpd
     except ImportError:
-        print("  geopandas not installed -- skipping Vicmap lot sizes")
-        return {}
+        print("  geopandas not installed -- skipping Vicmap")
+        return None
     sa1_gdf = gpd.GeoDataFrame.from_features(sa1_geojson["features"], crs="EPSG:4326")
     minx, miny, maxx, maxy = sa1_gdf.total_bounds
-    bbox_v1 = f"{minx},{miny},{maxx},{maxy},EPSG:4326"
-    bbox_v2 = f"{minx},{miny},{maxx},{maxy},EPSG:4326"
+    bbox_v1   = f"{minx},{miny},{maxx},{maxy},EPSG:4326"
+    bbox_v2   = f"{minx},{miny},{maxx},{maxy},EPSG:4326"
     bbox_esri = f"{minx},{miny},{maxx},{maxy}"
     print("  Fetching Vicmap parcel data ...")
     parcels_features = []
     for base in _WFS_BASES:
         discovered = _wfs_discover_parcel_layers(base)
-        # Try preferred land-parcel layers first, then other discovered layers (excluding
-        # title/strata views which have one tiny polygon per dwelling unit), then candidates.
-        preferred = [l for l in _WFS_PREFERRED if l in discovered]
-        others = [l for l in discovered if l not in _WFS_PREFERRED
-                  and not any(skip in l.lower() for skip in _WFS_SKIP)]
-        fallbacks = [l for l in _WFS_LAYER_CANDIDATES if l not in discovered]
-        layers_to_try = preferred + others + fallbacks
-        for layer in layers_to_try:
+        preferred  = [l for l in _WFS_PREFERRED if l in discovered]
+        others     = [l for l in discovered if l not in _WFS_PREFERRED
+                      and not any(skip in l.lower() for skip in _WFS_SKIP)]
+        fallbacks  = [l for l in _WFS_LAYER_CANDIDATES if l not in discovered]
+        for layer in preferred + others + fallbacks:
             feats = _wfs_get_features(base, layer, bbox_v1, bbox_v2)
             if feats:
                 print(f"  WFS {base.split('/')[-1]} / {layer}: {len(feats)} parcel features")
@@ -366,39 +365,79 @@ def fetch_vicmap_lot_sizes(sa1_geojson: dict) -> dict:
             if parcels_features:
                 break
     if not parcels_features:
-        print("  No Vicmap parcel data accessible -- lot sizes from Vicmap unavailable")
-        return {}
-    parcels_gdf = gpd.GeoDataFrame.from_features(parcels_features, crs="EPSG:4326")
-    parcels_proj = parcels_gdf.to_crs("EPSG:7855")
+        print("  No Vicmap parcel data accessible")
+        return None
+    parcels_gdf  = gpd.GeoDataFrame.from_features(parcels_features, crs="EPSG:4326")
+    parcels_proj = parcels_gdf.to_crs("EPSG:7855").copy()
     parcels_proj["area_m2"] = parcels_proj.geometry.area
-    before_filter = len(parcels_proj)
+    before = len(parcels_proj)
     parcels_proj = parcels_proj[
         (parcels_proj["area_m2"] >= 50) & (parcels_proj["area_m2"] <= 5000)
-    ]
-    print(f"  After area filter (50–5000 m²): {len(parcels_proj)} of {before_filter} parcels")
+    ].reset_index(drop=True)
+    print(f"  After area filter (50–5000 m²): {len(parcels_proj)} of {before} parcels")
+    return parcels_proj
+
+
+def enrich_with_parcel_sizes(geocoded: list, parcels_proj) -> list:
+    """For each geocoded listing, look up the Vicmap parcel it sits on and fill
+    in land_m2 if the listing didn't already have one."""
+    try:
+        import geopandas as gpd
+        import pandas as pd
+        from shapely.geometry import Point
+    except ImportError:
+        return geocoded
+    pts = gpd.GeoDataFrame(
+        [{"_idx": i} for i in range(len(geocoded))],
+        geometry=[Point(l["lng"], l["lat"]) for l in geocoded],
+        crs="EPSG:4326",
+    ).to_crs("EPSG:7855")
+    joined = gpd.sjoin(
+        pts[["_idx", "geometry"]],
+        parcels_proj[["area_m2", "geometry"]],
+        how="left", predicate="within",
+    )
+    # A point should be in at most one parcel; keep first match if multiple.
+    joined = joined.drop_duplicates(subset="_idx", keep="first")
+    area_by_idx = dict(zip(joined["_idx"], joined["area_m2"]))
+    enriched = []
+    filled = 0
+    for i, listing in enumerate(geocoded):
+        if listing.get("land_m2") is None:
+            area = area_by_idx.get(i)
+            if area is not None and not pd.isna(area):
+                listing = {**listing, "land_m2": round(float(area), 1)}
+                filled += 1
+        enriched.append(listing)
+    print(f"  Filled land_m2 from Vicmap parcel for {filled}/{len(geocoded)} listings")
+    return enriched
+
+
+def compute_sa1_lot_sizes(parcels_proj, sa1_geojson: dict) -> dict:
+    """Aggregate Vicmap parcels to median lot size per SA1 using centroid join."""
+    try:
+        import geopandas as gpd
+    except ImportError:
+        return {}
+    sa1_gdf  = gpd.GeoDataFrame.from_features(sa1_geojson["features"], crs="EPSG:4326")
     sa1_proj = sa1_gdf.to_crs("EPSG:7855")
     sa1_code_col = next(
         (c for c in sa1_proj.columns if "SA1" in c.upper() and "CODE" in c.upper()),
         "SA1_CODE_2021",
     )
     sa1_proj = sa1_proj.rename(columns={sa1_code_col: "sa1_code"})
-    # Join on parcel centroids — avoids boundary-parcel ambiguity; each centroid
-    # falls in exactly one SA1 polygon (strict within is correct for points).
-    centroids_gdf = gpd.GeoDataFrame(
+    centroids = gpd.GeoDataFrame(
         parcels_proj[["area_m2"]],
         geometry=parcels_proj.geometry.centroid,
         crs="EPSG:7855",
     )
-    joined = gpd.sjoin(
-        centroids_gdf,
-        sa1_proj[["sa1_code", "geometry"]],
-        how="left", predicate="within",
-    )
+    joined = gpd.sjoin(centroids, sa1_proj[["sa1_code", "geometry"]],
+                       how="left", predicate="within")
     lot_sizes = {}
     for sa1_code, group in joined.groupby("sa1_code"):
         lot_sizes[str(sa1_code)] = {
             "median_m2": round(group["area_m2"].median(), 1),
-            "count": len(group),
+            "count":     len(group),
         }
     print(f"  Computed lot sizes for {len(lot_sizes)} SA1s from Vicmap")
     return lot_sizes
@@ -454,17 +493,23 @@ def main():
     print("\nLoading house listings ...")
     listings = load_raw_listings()
 
-    geocoded = []
+    print("\nGeocoding listings ...")
+    geocoded = geocode_listings(listings) if listings else []
+    print(f"  Total geocoded: {len(geocoded)}")
+
+    print("\nFetching Vicmap parcels ...")
+    parcels_proj = _build_parcels_gdf(sa1_geojson)
+
+    if geocoded and parcels_proj is not None:
+        print("  Enriching listings with Vicmap parcel sizes ...")
+        geocoded = enrich_with_parcel_sizes(geocoded, parcels_proj)
+
     prices_by_sa1 = {}
     listing_lot_sizes = {}
-    if listings:
-        geocoded = geocode_listings(listings)
-        if geocoded:
-            prices_by_sa1, listing_lot_sizes = assign_to_sa1(geocoded, sa1_geojson)
+    if geocoded:
+        prices_by_sa1, listing_lot_sizes = assign_to_sa1(geocoded, sa1_geojson)
 
-    print(f"\nTotal listings geocoded: {len(geocoded)}")
-    print("\nFetching Vicmap lot sizes ...")
-    vicmap_lot_sizes = fetch_vicmap_lot_sizes(sa1_geojson)
+    vicmap_lot_sizes = compute_sa1_lot_sizes(parcels_proj, sa1_geojson) if parcels_proj is not None else {}
     merge_and_write(sa1_geojson, prices_by_sa1, vicmap_lot_sizes, listing_lot_sizes)
 
 
