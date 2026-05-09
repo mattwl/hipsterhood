@@ -37,14 +37,27 @@ SA2_NAMES = {
     "206021112": "Thornbury",
     "206021499": "Northcote - East",
     "206021500": "Northcote - West",
+    "206011101": "Brunswick",
+    "206011104": "Brunswick East",
+    "206021105": "Fitzroy North",
+    "206021116": "Clifton Hill",
+    "206021113": "Fairfield",
 }
+
+# All suburb names included in the map — used to filter SA1s from the ABS BBOX query
+SUBURB_NAMES = (
+    "Thornbury", "Northcote", "Clifton Hill", "Fairfield",
+    "Brunswick East", "Brunswick", "Fitzroy North",
+)
 
 
 # -- Step 1: SA1 boundaries from ABS REST API --------------------------------
 
 def fetch_sa1_boundaries():
     print("Fetching SA1 boundaries from ABS REST API ...")
-    BBOX = "144.975,-37.800,145.025,-37.745"
+    # Covers: Thornbury, Northcote, Clifton Hill, Fairfield,
+    #         Brunswick East, Brunswick, Fitzroy North
+    BBOX = "144.905,-37.825,145.050,-37.740"
     bases = [
         "https://geo.abs.gov.au/arcgis/rest/services/ASGS2021/SA1/MapServer",
         "https://geo.abs.gov.au/arcgis/rest/services/ASGS_2021/SA1/MapServer",
@@ -67,7 +80,7 @@ def fetch_sa1_boundaries():
             r = requests.get(url, params={
                 "where": "1=1", "geometry": BBOX, "geometryType": "esriGeometryEnvelope",
                 "inSR": "4326", "spatialRel": "esriSpatialRelIntersects",
-                "outFields": "*", "outSR": "4326", "f": "geojson", "resultRecordCount": 200,
+                "outFields": "*", "outSR": "4326", "f": "geojson", "resultRecordCount": 500,
             }, timeout=30)
             r.raise_for_status()
             geojson = r.json()
@@ -79,9 +92,9 @@ def fetch_sa1_boundaries():
                 geojson["features"] = [
                     f for f in geojson["features"]
                     if any(s in str(f["properties"].get(sa2_name_field, ""))
-                           for s in ("Thornbury", "Northcote"))
+                           for s in SUBURB_NAMES)
                 ]
-                print(f"  Filtered {before} -> {len(geojson['features'])} SA1s (Thornbury + Northcote only)")
+                print(f"  Filtered {before} -> {len(geojson['features'])} SA1s ({', '.join(SUBURB_NAMES)})")
             n = len(geojson.get("features", []))
             if n == 0:
                 continue
