@@ -205,7 +205,7 @@ def scrape_rea_listings(suburb: str, postcode: str) -> list:
             title = title_m.group(1) if title_m else "(none)"
             print(f"    Page 1 debug — title: {title!r}, html length: {len(html)}")
             if len(html) < 5000 or "challenge" in title.lower() or not title_m:
-                print(f"    Cloudflare block detected with {method}. Try: pip install curl-cffi")
+                print(f"    Cloudflare block detected with {method}. Try: pip3 install curl-cffi")
                 break
 
         if not found:
@@ -349,7 +349,7 @@ def get_listings() -> list:
         return load_raw_listings()
 
     print("  raw_listings.json not found — scraping realestate.com.au …")
-    print("  (pip install curl-cffi  for best Cloudflare bypass)")
+    print("  (pip3 install curl-cffi  for best Cloudflare bypass)")
     all_listings = []
     for target in SUBURB_TARGETS:
         results = scrape_rea_listings(target["suburb"], target["postcode"])
@@ -371,7 +371,7 @@ def geocode_listings(listings: list) -> list:
         from geopy.geocoders import Nominatim
         from geopy.extra.rate_limiter import RateLimiter
     except ImportError:
-        print("  geopy not installed — skipping geocoding (pip install geopy)")
+        print("  geopy not installed — skipping geocoding (pip3 install geopy)")
         return []
 
     geolocator = Nominatim(user_agent="northbury-map/1.0")
@@ -404,7 +404,7 @@ def assign_to_sa1(listings_geocoded: list, sa1_geojson: dict) -> tuple:
         import pandas as pd
         from shapely.geometry import Point
     except ImportError:
-        print("  geopandas not installed — skipping SA1 assignment (pip install geopandas)")
+        print("  geopandas not installed — skipping SA1 assignment (pip3 install geopandas)")
         return {}, {}
 
     sa1_gdf = gpd.GeoDataFrame.from_features(sa1_geojson["features"], crs="EPSG:4326")
@@ -441,6 +441,65 @@ def assign_to_sa1(listings_geocoded: list, sa1_geojson: dict) -> tuple:
 
 # ── Step 5: Lot sizes from Vicmap (WFS then ArcGIS REST) ──────────────────────
 
+_WFS_BASES = [
+    "https://opendata.maps.vic.gov.au/geoserver/ows",
+    "https://opendata.maps.vic.gov.au/geoserver/wfs",
+    "https://opendata.maps.vic.gov.au/geoserver/vmpropertysmp/ows",
+    "https://opendata.maps.vic.gov.au/geoserver/vmpropertysmp/wfs",
+]
+
+_WFS_LAYER_CANDIDATES = [
+    "vmpropertysmp:PARCEL_MP",
+    "VMPROPERTYSMP:PARCEL_MP",
+    "PARCEL_SHP",
+    "vmpropertysmp:PARCEL_SHP",
+    "PARCEL_MP",
+]
+
+
+def _wfs_discover_parcel_layers(base_url: str) -> list:
+    """Run WFS GetCapabilities and return any layer names containing PARCEL."""
+    for version in ("2.0.0", "1.1.0"):
+        try:
+            r = requests.get(base_url, params={
+                "service": "WFS", "version": version, "request": "GetCapabilities"
+            }, timeout=20)
+            if r.status_code == 200 and "FeatureType" in r.text:
+                names = re.findall(r"<(?:wfs:)?Name>([^<]+)</(?:wfs:)?Name>", r.text)
+                parcel = [n for n in names if "PARCEL" in n.upper()]
+                if parcel:
+                    print(f"  GetCapabilities {base_url.split('/')[-1]} v{version}: {parcel}")
+                    return parcel
+        except Exception:
+            pass
+    return []
+
+
+def _wfs_get_features(base_url: str, layer: str, bbox_v1: str, bbox_v2: str) -> list:
+    """Try WFS 1.1.0 then 2.0.0 to fetch features for a layer."""
+    attempts = [
+        # WFS 1.1.0: typeName, maxFeatures, srsName
+        {"version": "1.1.0", "typeName": layer,  "maxFeatures": 3000, "BBOX": bbox_v1,
+         "outputFormat": "application/json", "srsName": "EPSG:4326"},
+        # WFS 2.0.0: typeNames (plural), count
+        {"version": "2.0.0", "typeNames": layer, "count": 3000,       "BBOX": bbox_v2,
+         "outputFormat": "application/json"},
+    ]
+    for params in attempts:
+        try:
+            r = requests.get(base_url, params={"service": "WFS", "request": "GetFeature", **params}, timeout=30)
+            if r.status_code == 200:
+                try:
+                    data = r.json()
+                    if data.get("features"):
+                        return data["features"]
+                except Exception:
+                    pass
+        except Exception:
+            pass
+    return []
+
+
 def fetch_vicmap_lot_sizes(sa1_geojson: dict) -> dict:
     try:
         import geopandas as gpd
@@ -451,85 +510,67 @@ def fetch_vicmap_lot_sizes(sa1_geojson: dict) -> dict:
 
     sa1_gdf = gpd.GeoDataFrame.from_features(sa1_geojson["features"], crs="EPSG:4326")
     minx, miny, maxx, maxy = sa1_gdf.total_bounds
-    bbox_wfs   = f"{minx},{miny},{maxx},{maxy},EPSG:4326"
-    bbox_esri  = f"{minx},{miny},{maxx},{maxy}"
+    bbox_v1 = f"{minx},{miny},{maxx},{maxy},EPSG:4326"
+    bbox_v2 = f"{minx},{miny},{maxx},{maxy},EPSG:4326"
+    bbox_esri = f"{minx},{miny},{maxx},{maxy}"
 
     print("  Fetching Vicmap parcel data …")
+    parcels_features = []
 
-    parcels_geojson = None
-
-    # Victorian Government WFS candidates
-    wfs_candidates = [
-        ("https://opendata.maps.vic.gov.au/geoserver/ows", "PARCEL_SHP"),
-        ("https://opendata.maps.vic.gov.au/geoserver/ows", "vmpropertysmp:PARCEL_MP"),
-        ("https://opendata.maps.vic.gov.au/geoserver/ows", "vicmap_property:PARCEL_SHP"),
-        ("https://opendata.maps.vic.gov.au/geoserver/wfs", "PARCEL_SHP"),
-    ]
-    for wfs_url, type_name in wfs_candidates:
-        try:
-            r = requests.get(wfs_url, params={
-                "service": "WFS",
-                "version": "2.0.0",
-                "request": "GetFeature",
-                "typeName": type_name,
-                "outputFormat": "application/json",
-                "count": 3000,
-                "BBOX": bbox_wfs,
-            }, timeout=30)
-            if r.status_code == 200:
-                data = r.json()
-                features = data.get("features", [])
-                if features:
-                    print(f"  WFS {type_name}: {len(features)} parcel features")
-                    parcels_geojson = data
-                    break
-                else:
-                    print(f"  WFS {type_name}: 0 features")
-            else:
-                print(f"  WFS {type_name}: HTTP {r.status_code}")
-        except Exception as e:
-            print(f"  WFS {type_name}: error ({e})")
+    # Try each WFS base, discover layers via GetCapabilities, then fetch
+    for base in _WFS_BASES:
+        discovered = _wfs_discover_parcel_layers(base)
+        layers_to_try = discovered + [l for l in _WFS_LAYER_CANDIDATES if l not in discovered]
+        for layer in layers_to_try:
+            feats = _wfs_get_features(base, layer, bbox_v1, bbox_v2)
+            if feats:
+                print(f"  WFS {base.split('/')[-1]} / {layer}: {len(feats)} parcel features")
+                parcels_features = feats
+                break
+        if parcels_features:
+            break
 
     # ArcGIS REST fallbacks
-    if not parcels_geojson:
-        arcgis_urls = [
-            "https://services6.arcgis.com/GB33F62SbDxJjwEL/arcgis/rest/services/Vicmap_Property/FeatureServer/0/query",
-            "https://services6.arcgis.com/GB33F62SbDxJjwEL/arcgis/rest/services/Vicmap_Property/FeatureServer/1/query",
-            "https://services6.arcgis.com/GB33F62SbDxJjwEL/arcgis/rest/services/Vicmap_Property/FeatureServer/2/query",
-            "https://services6.arcgis.com/GB33F62SbDxJjwEL/arcgis/rest/services/Vicmap_Property/FeatureServer/3/query",
+    if not parcels_features:
+        arcgis_services = [
+            "https://services6.arcgis.com/GB33F62SbDxJjwEL/arcgis/rest/services/Vicmap_Property/FeatureServer",
+            "https://services1.arcgis.com/vHnIGBHHqDR6y0CR/arcgis/rest/services/Vicmap_Property_Parcel/FeatureServer",
         ]
-        for url in arcgis_urls:
-            try:
-                r = requests.get(url, params={
-                    "geometry": bbox_esri,
-                    "geometryType": "esriGeometryEnvelope",
-                    "spatialRel": "esriSpatialRelIntersects",
-                    "inSR": "4326", "outSR": "4326",
-                    "outFields": "*",
-                    "returnGeometry": "true",
-                    "f": "geojson",
-                    "resultRecordCount": 2000,
-                }, timeout=30)
-                if r.status_code == 200:
-                    data = r.json()
-                    features = data.get("features", [])
-                    if features:
-                        layer = url.split("/")[-2]
-                        print(f"  ArcGIS layer {layer}: {len(features)} parcel features")
-                        parcels_geojson = data
-                        break
-                    else:
-                        print(f"  ArcGIS {url.split('/')[-2]}: 0 features")
-                else:
-                    print(f"  ArcGIS {url.split('/')[-2]}: HTTP {r.status_code}")
-            except Exception as e:
-                print(f"  ArcGIS error ({e})")
+        for svc in arcgis_services:
+            for layer_id in range(6):
+                url = f"{svc}/{layer_id}/query"
+                try:
+                    r = requests.get(url, params={
+                        "geometry": bbox_esri,
+                        "geometryType": "esriGeometryEnvelope",
+                        "spatialRel": "esriSpatialRelIntersects",
+                        "inSR": "4326", "outSR": "4326",
+                        "outFields": "*",
+                        "returnGeometry": "true",
+                        "f": "geojson",
+                        "resultRecordCount": 2000,
+                    }, timeout=30)
+                    if r.status_code == 200:
+                        data = r.json()
+                        feats = data.get("features", [])
+                        if feats:
+                            print(f"  ArcGIS {svc.split('/')[-2]} layer {layer_id}: {len(feats)} features")
+                            parcels_features = feats
+                            break
+                    elif r.status_code not in (400, 404):
+                        print(f"  ArcGIS {svc.split('/')[-2]}/{layer_id}: HTTP {r.status_code}")
+                except Exception as e:
+                    print(f"  ArcGIS error: {e}")
+            if parcels_features:
+                break
 
-    if not parcels_geojson:
+    if not parcels_features:
         print("  No Vicmap parcel data accessible — lot sizes from Vicmap unavailable")
         return {}
 
-    parcels_gdf  = gpd.GeoDataFrame.from_features(parcels_geojson["features"], crs="EPSG:4326")
+    parcels_gdf  = gpd.GeoDataFrame.from_features(
+        {"type": "FeatureCollection", "features": parcels_features}["features"], crs="EPSG:4326"
+    )
     parcels_proj = parcels_gdf.to_crs("EPSG:7855")
     parcels_proj["area_m2"] = parcels_proj.geometry.area
     parcels_proj = parcels_proj[(parcels_proj["area_m2"] >= 50) & (parcels_proj["area_m2"] <= 5000)]
@@ -552,7 +593,7 @@ def fetch_vicmap_lot_sizes(sa1_geojson: dict) -> dict:
     return lot_sizes
 
 
-# ── Step 6: Merge and write ──────────────────────────────────────────────────────
+# ── Step 6: Merge and write ─────────────────────────────────────────────────────
 
 def merge_and_write(
     sa1_geojson: dict,
@@ -608,7 +649,7 @@ def merge_and_write(
     print(f"  With lots:  {n_lots}")
 
 
-# ── Main ─────────────────────────────────────────────────────────────────────────────────
+# ── Main ────────────────────────────────────────────────────────────────────────────────
 
 def main():
     print("=" * 60)
